@@ -39,10 +39,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Get latest tag And Increment
+      - name: Get latest tag And Increment version
         run: |
           # 获取最新的 tag 提取版本号部分
-          version=$(curl -s https://api.github.com/repos/PlanetEditorX/AutoBuildImmortalWrt/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
+          version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
 
           if [[ "$version" == "null" ]]; then
             NEW_VERSION='v1.0.0'
