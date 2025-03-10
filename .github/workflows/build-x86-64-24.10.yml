@@ -75,89 +75,13 @@ jobs:
               immortalwrt/imagebuilder:x86-64-openwrt-24.10.0 /bin/bash /home/build/immortalwrt/build.sh
           done
 
-      - name: Verify and Process Image
+      - name: Generate Firmware SHA-256
         run: |
-          # 复制 squashfs-combined-efi.img.gz 文件到工作区
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
-
-          # 检查文件是否存在
-          if [ ! -f *squashfs-combined-efi.img.gz ]; then
-              echo "Error: No squashfs image found."
-              exit 1
-          else
-              # 获取匹配的文件名
-              file_name=$(ls *squashfs-combined-efi.img.gz)
-
-              # 检查是否只有一个文件匹配
-              if [ $(ls *squashfs-combined-efi.img.gz | wc -l) -ne 1 ]; then
-                  echo "Error: Multiple squashfs images found."
-                  exit 1
-              fi
-
-              # 提取文件名的前面部分（去掉 .img.gz）
-              base_name="${file_name%.img.gz}"
-
-              # 输出文件名并保存到变量
-              echo " squashfs image found: $file_name"
-              echo "Base name saved to variable: $base_name"
-
-              squashfs_image="$base_name"
-
-              # 你可以在这里继续使用 $squashfs_image 变量
-              echo "The base name of the squashfs image is saved in variable: $squashfs_image"
-          fi
-
-          # 解压 .img.gz 文件
-          gunzip *squashfs-combined-efi.img.gz
-
-          # 检查解压命令是否成功
-          if [ $? -ne 0 ]; then
-              echo "Error: Failed to decompress image."
-              exit 1
-          fi
-
-          # 检查解压后的 .img 文件是否存在
-          if [ ! -f *squashfs-combined-efi.img ]; then
-              echo "Error: Failed to decompress image."
-              exit 1
-          fi
-
-          # 将 .img 文件转换为 ISO 文件
-          # 假设 .img 文件是一个可挂载的文件系统
-          # 创建挂载点
-          mkdir -p img_mount
-          # 挂载 .img 文件
-          mount -o loop *squashfs-combined-efi.img img_mount
-          # 使用 genisoimage 或 mkisofs 创建 ISO 文件
-          genisoimage -o squashfs-combined-efi.iso -J -r img_mount/
-          # 卸载挂载点
-          umount img_mount
-          # 删除挂载点
-          rmdir img_mount
-
-          # 检查生成的 ISO 文件是否存在
-          if [ ! -f squashfs-combined-efi.iso ]; then
-              echo "Error: Failed to create ISO file."
-              exit 1
-          fi
-
-          # 压缩 ISO 文件
-          gzip -c squashfs-combined-efi.iso > "${squashfs_image}.iso.gz"
-
-          # 检查压缩命令是否成功
-          if [ $? -ne 0 ]; then
-              echo "Error: Failed to compress ISO file."
-              exit 1
-          fi
-
-          # 检查压缩后的 .iso.gz 文件是否存在
-          if [ ! -f "${squashfs_image}.iso.gz" ]; then
-              echo "Error: Failed to compress ISO file."
-              exit 1
-          fi
-
-          # 输出最终的压缩文件名
-          echo "Compressed ISO file saved as: ${squashfs_image}.iso.gz"
+          for file in *squashfs-combined-efi.img.gz; do
+            sha256sum "$file" > "$file.sha256"
+            sha256sum -c "$file.sha256"
+          done
 
       - name: Create info
         run: |
@@ -175,7 +99,6 @@ jobs:
           body_path: ${{ github.workspace }}/info.md
           files: |
             ${{ github.workspace }}/*squashfs-combined-efi.img.gz
-            ${{ github.workspace }}/*squashfs-combined-efi.iso.gz
             ${{ github.workspace }}/*.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
