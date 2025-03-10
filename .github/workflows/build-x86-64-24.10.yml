@@ -39,10 +39,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install genisoimage
+      - name: Install qemu-img
         run: |
           sudo apt-get update
-          sudo apt-get install -y genisoimage
+          sudo apt-get install -y qemu-img
 
       - name: Set executable permissions
         run: chmod +x ${{ github.workspace }}/x86-64/build.sh
@@ -101,13 +101,13 @@ jobs:
             echo "Base name saved to variable: $base_name"
 
             # 镜像转换
-            # 将 img 内容打包为 ISO
-            genisoimage -o ${base_name}.iso -V "immortalwrt" -J -r ${base_name}.img
+            # 将 img 转换为 qcow2
+            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
 
           done
 
-          # 压缩iso文件
-          gzip -k -f ${base_name}.iso
+          # 压缩qcow2文件
+          gzip -k -f ${base_name}.qcow2
 
       - name: Generate Firmware SHA-256
         run: |
