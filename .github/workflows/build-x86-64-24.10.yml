@@ -43,14 +43,13 @@ jobs:
         run: |
           # 获取最新的 tag
           latest_tag=$(curl -s https://api.github.com/repos/PlanetEditorX/AutoBuildImmortalWrt/tags | jq -r '.[0].name')
-          echo "latest_tag:${latest_tag}"
 
           # 提取版本号部分
-          version=$(echo "$latest_tag" | sed 's/^Autobuild-x86-64-//')
-          echo "version:${version}"
+          version=$(echo "$latest_tag" | sed 's/^Autobuild-x86-64-v//')
+
           # 读取最新版本号并分割为数组
           IFS='.' read -r major minor patch <<< $version
-          echo "major:${major},minor:${minor},patch:${patch}"
+
           # 递增补丁版本号
           patch=$((patch + 1))
           # 如果补丁版本号达到10，重置为0并递增次版本号
@@ -65,6 +64,7 @@ jobs:
           fi
           # 构造新版本号
           NEW_VERSION="$major.$minor.$patch"
+          echo "NEW_VERSION:${NEW_VERSION}"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Install Software
