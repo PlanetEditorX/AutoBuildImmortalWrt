@@ -111,7 +111,7 @@ jobs:
 
       - name: Generate Firmware SHA-256
         run: |
-          for file in *squashfs-combined-efi.*; do
+          for file in *squashfs-combined-efi.*gz; do
             sha256sum "$file" > "$file.sha256"
             sha256sum -c "$file.sha256"
           done
@@ -131,7 +131,7 @@ jobs:
           echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
           echo "#### 固件地址 `192.168.100.1` 或 DHCP获取" >> info.md
           echo "#### 用户名 `root` 密码：无" >> info.md
-          echo "#### 默认软件包大小 ${{ github.event.inputs.profile }}" >> info.md
+          echo "#### 默认软件包大小 ${{ github.event.inputs.profile }} MB" >> info.md
 
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
