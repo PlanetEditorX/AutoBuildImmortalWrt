@@ -63,7 +63,7 @@ jobs:
               fi
           fi
           # 构造新版本号
-          NEW_VERSION="$major.$minor.$patch"
+          NEW_VERSION="v$major.$minor.$patch"
           echo "NEW_VERSION:${NEW_VERSION}"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
