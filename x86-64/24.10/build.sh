@@ -55,16 +55,6 @@ echo "$PACKAGES"
 
 make image PROFILE="generic" PACKAGES="$PACKAGES" FILES="/home/build/immortalwrt/files" ROOTFS_PARTSIZE=$PROFILE
 
-# 解压
-gunzip openwrt-x86-64-generic-squashfs-combined-efi.img.gz
-
-# 安装 qemu-utils
-apt-get update
-apt-get install -y qemu-utils
-
-# 镜像转换
-qemu-img convert -f raw -O iso openwrt-x86-64-generic-squashfs-combined-efi.img openwrt-x86-64-generic-squashfs-combined-efi.iso
-
 if [ $? -ne 0 ]; then
     echo "$(date '+%Y-%m-%d %H:%M:%S') - Error: Build failed!"
     exit 1
