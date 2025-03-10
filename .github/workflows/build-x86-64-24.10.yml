@@ -7,6 +7,14 @@ on:
         description: '请输入要编译固件大小 单位(MB)'
         required: true
         default: '512'
+      ipaddr:
+        description: '输入管理IP'
+        required: true
+        default: '192.168.3.100'
+      gateway:
+        description: '输入默认网关'
+        required: true
+        default: '192.168.3.1'
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -87,6 +95,10 @@ jobs:
       - name: Set executable permissions
         run: chmod +x ${{ github.workspace }}/x86-64/build.sh
 
+      - name: Replace custom_ip value
+        run: |
+          sed -i 's/custom_ip="dhcp"/custom_ip="${{ github.event.inputs.ipaddr }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_gateway=""/custom_gateway="${{ github.event.inputs.gateway }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
 
       - name: Validate PPPoE Inputs
         run: |
