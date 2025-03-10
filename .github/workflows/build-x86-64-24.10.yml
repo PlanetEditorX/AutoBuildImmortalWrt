@@ -88,7 +88,7 @@ jobs:
             ls
             echo "Gunzip $file"
             # 解压
-            gunzip --verbose $file
+            gunzip -k $file
           done
 
       - name: IMG Convert ISO
