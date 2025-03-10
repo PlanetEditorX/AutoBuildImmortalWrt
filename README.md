@@ -32,3 +32,7 @@ https://wkdaily.cpolar.top/15
 ### 6.移动该文件作为为虚拟机的存储空间
 - 比如：```bash mv immortalwrt-24.10.0-x86-64-generic-squashfs-combined-efi.qcow2 /vol1/vm/pool/5c4906c0-e2aa-4f31-9c4f-ab5e5b35fa35-fo34```
 ### 7.启动，并通过ip地址访问
+
+## 安装Nikki
+- 官方：https://github.com/nikkinikki-org/OpenWrt-nikki
+- 教程：https://www.qichiyu.com/379.html
