@@ -103,7 +103,7 @@ jobs:
 
             # 镜像转换
             # 将 img 内容打包为 ISO‌:ml-citation{ref="1,3" data="citationList"}
-            genisoimage -o ${base_name}.iso -V ${base_name} -J -r ${base_name}.img
+            genisoimage -o ${base_name}.iso -V "immortalwrt" -J -r ${base_name}.img
 
           done
 
