@@ -36,3 +36,22 @@ https://wkdaily.cpolar.top/15
 ## 安装Nikki
 - 官方：https://github.com/nikkinikki-org/OpenWrt-nikki
 - 教程：https://www.qichiyu.com/379.html
+### 1.Add Feed(需要网络环境)
+```bash
+curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+```
+或使用前置代理
+```bash
+curl -s -L https://gh-proxy.com/https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+```
+### 2.Install
+```bash
+opkg install nikki
+opkg install luci-app-nikki
+opkg install luci-i18n-nikki-zh-cn
+```
+### 3.替换配置文件
+- 下载：```https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/master/nikki```
+- 使用hfs传递文件：```curl http://192.168.3.23/nikki > nikki```
+### 4.配置文件中添加订阅并更新
+- 插件配置中选择配置文件后启动
