@@ -39,7 +39,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Get latest tag And Increment version
+      - name: Get latest tag And Increment Version
         run: |
           # 获取最新的 tag 提取版本号部分
           version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
@@ -49,7 +49,7 @@ jobs:
           else
             # 读取最新版本号并分割为数组
             IFS='.' read -r major minor patch <<< $version
-
+            major = $(echo "$major" | sed 's/^v//')
             # 递增补丁版本号
             patch=$((patch + 1))
             # 如果补丁版本号达到10，重置为0并递增次版本号
