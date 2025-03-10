@@ -81,7 +81,7 @@ jobs:
               immortalwrt/imagebuilder:x86-64-openwrt-24.10.0 /bin/bash /home/build/immortalwrt/build.sh
           done
 
-      - name: IMG Convert ISO
+      - name: GET IMG
         run: |
           # 解压
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
@@ -90,9 +90,15 @@ jobs:
             echo "Gunzip $file"
             # 解压
             gunzip --verbose $file
+          done
+        continue-on-error: true
 
-            # 提取文件名的前面部分(去掉 .img.gz)
-            base_name="${file%.img.gz}"
+      - name: IMG Convert ISO
+        run: |
+          for file in *squashfs-combined-efi.img; do
+            ls
+            # 提取文件名的前面部分(去掉 .img)
+            base_name="${file%.img}"
 
             # 输出文件名并保存到变量
             echo "Base name saved to variable: $base_name"
@@ -102,7 +108,7 @@ jobs:
           done
 
           # 压缩iso文件
-          gzip -k -f openwrt-x86-64-generic-squashfs-combined-efi.iso
+          gzip -k -f ${base_name}.iso
 
       - name: Generate Firmware SHA-256
         run: |
