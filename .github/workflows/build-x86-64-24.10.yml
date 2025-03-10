@@ -183,7 +183,7 @@ jobs:
         run: |
           # 创建或修改 info.md 文件
           echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
-          if [ ${{ github.event.inputs.ipaddr }} != '']; then
+          if [ -n "${{ github.event.inputs.ipaddr }}" ]; then
             echo "#### 固件地址: \`${{ github.event.inputs.ipaddr }}\`" >> info.md
           else
             echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
