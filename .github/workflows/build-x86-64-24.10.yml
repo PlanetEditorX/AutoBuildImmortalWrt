@@ -41,30 +41,32 @@ jobs:
 
       - name: Get latest tag And Increment
         run: |
-          # 获取最新的 tag
-          latest_tag=$(curl -s https://api.github.com/repos/PlanetEditorX/AutoBuildImmortalWrt/tags | jq -r '.[0].name')
+          # 获取最新的 tag 提取版本号部分
+          version=$(curl -s https://api.github.com/repos/PlanetEditorX/AutoBuildImmortalWrt/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
 
-          # 提取版本号部分
-          version=$(echo "$latest_tag" | sed 's/^Autobuild-x86-64-v//')
+          if [[ "$version" == "null" ]]; then
+            NEW_VERSION='v1.0.0'
+          else
+            # 读取最新版本号并分割为数组
+            IFS='.' read -r major minor patch <<< $version
 
-          # 读取最新版本号并分割为数组
-          IFS='.' read -r major minor patch <<< $version
-
-          # 递增补丁版本号
-          patch=$((patch + 1))
-          # 如果补丁版本号达到10，重置为0并递增次版本号
-          if [ $patch -eq 10 ]; then
-              patch=0
-              minor=$((minor + 1))
-              # 如果次版本号达到10，重置为0并递增主版本号
-              if [ $minor -eq 10 ]; then
-                  minor=0
-                  major=$((major + 1))
-              fi
+            # 递增补丁版本号
+            patch=$((patch + 1))
+            # 如果补丁版本号达到10，重置为0并递增次版本号
+            if [ $patch -eq 10 ]; then
+                patch=0
+                minor=$((minor + 1))
+                # 如果次版本号达到10，重置为0并递增主版本号
+                if [ $minor -eq 10 ]; then
+                    minor=0
+                    major=$((major + 1))
+                fi
+            fi
+            # 构造新版本号
+            NEW_VERSION="v$major.$minor.$patch"
           fi
-          # 构造新版本号
-          NEW_VERSION="v$major.$minor.$patch"
-          echo "NEW_VERSION:${NEW_VERSION}"
+
+          echo "NEW_VERSION: ${NEW_VERSION}"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Install Software
@@ -165,7 +167,7 @@ jobs:
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: Autobuild-x86-64-${NEW_VERSION}
+          tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
           body_path: ${{ github.workspace }}/info.md
           files: |
             ${{ github.workspace }}/*squashfs-combined-efi.*.gz
