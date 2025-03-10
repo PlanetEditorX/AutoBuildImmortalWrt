@@ -84,7 +84,6 @@ jobs:
       - name: GET IMG
         continue-on-error: true
         run: |
-          # 解压
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
           for file in *squashfs-combined-efi.img.gz; do
             ls
