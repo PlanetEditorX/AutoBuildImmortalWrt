@@ -6,7 +6,7 @@ on:
       profile:
         description: '请输入要编译固件大小 单位(MB)'
         required: true
-        default: '1024'
+        default: '512'
       include_docker:
         description: |
           是否编译 Docker 插件
@@ -124,6 +124,14 @@ jobs:
           else
             echo -e "NO docker"
           fi
+
+      - name: Generate info.md
+        run: |
+          # 创建或修改 info.md 文件
+          echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
+          echo "#### 固件地址 `192.168.100.1` 或 DHCP获取" >> info.md
+          echo "#### 用户名 `root` 密码：无" >> info.md
+          echo "#### 默认软件包大小 ${{ github.event.inputs.profile }}" >> info.md
 
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
