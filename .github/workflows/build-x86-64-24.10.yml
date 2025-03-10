@@ -82,6 +82,7 @@ jobs:
           done
 
       - name: GET IMG
+        continue-on-error: true
         run: |
           # 解压
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
@@ -91,7 +92,6 @@ jobs:
             # 解压
             gunzip --verbose $file
           done
-        continue-on-error: true
 
       - name: IMG Convert ISO
         run: |
