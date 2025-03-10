@@ -110,10 +110,16 @@ jobs:
           # 解压 .img.gz 文件
           gunzip *squashfs-combined-efi.img.gz
 
+          # 检查解压命令是否成功
+          if [ $? -ne 0 ]; then
+              echo "Error: Failed to decompress image."
+              exit 1
+          fi
+
           # 检查解压后的 .img 文件是否存在
           if [ ! -f *squashfs-combined-efi.img ]; then
-            echo "Error: Failed to decompress image."
-            exit 1
+              echo "Error: Failed to decompress image."
+              exit 1
           fi
 
           # 将 .img 文件转换为 ISO 文件
@@ -131,18 +137,27 @@ jobs:
 
           # 检查生成的 ISO 文件是否存在
           if [ ! -f squashfs-combined-efi.iso ]; then
-            echo "Error: Failed to create ISO file."
-            exit 1
+              echo "Error: Failed to create ISO file."
+              exit 1
           fi
 
           # 压缩 ISO 文件
           gzip -c squashfs-combined-efi.iso > "${squashfs_image}.iso.gz"
+
+          # 检查压缩命令是否成功
+          if [ $? -ne 0 ]; then
+              echo "Error: Failed to compress ISO file."
+              exit 1
+          fi
 
           # 检查压缩后的 .iso.gz 文件是否存在
           if [ ! -f "${squashfs_image}.iso.gz" ]; then
               echo "Error: Failed to compress ISO file."
               exit 1
           fi
+
+          # 输出最终的压缩文件名
+          echo "Compressed ISO file saved as: ${squashfs_image}.iso.gz"
 
       - name: Create info
         run: |
