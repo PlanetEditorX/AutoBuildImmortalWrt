@@ -39,11 +39,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install qemu-utils
+      - name: Install genisoimage
         run: |
-          # 安装 qemu-utils
           sudo apt-get update
-          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y genisoimage
 
       - name: Set executable permissions
         run: chmod +x ${{ github.workspace }}/x86-64/build.sh
@@ -103,7 +102,9 @@ jobs:
             echo "Base name saved to variable: $base_name"
 
             # 镜像转换
-            qemu-img convert -f raw -O iso ${base_name}.img ${base_name}.iso
+            # 将 img 内容打包为 ISO‌:ml-citation{ref="1,3" data="citationList"}
+            genisoimage -o ${base_name}.iso -V ${base_name} -J -r ${base_name}.img
+
           done
 
           # 压缩iso文件
