@@ -48,9 +48,16 @@ jobs:
             NEW_VERSION='v1.0.0'
           else
             # 读取最新版本号并分割为数组
-            IFS='.' read -r major minor patch <<< $version
-            echo "$major"
-            major = $(echo "$major" | sed 's/^v//')
+            # 使用 IFS 分割版本号
+            IFS='.' read -r major minor patch <<< "$version"
+
+            # 去除 major 中的 "v"
+            major=$(echo "$major" | sed 's/^v//')
+
+            # 输出结果
+            echo "Major: $major"
+            echo "Minor: $minor"
+            echo "Patch: $patch"
 
             # 递增补丁版本号
             patch=$((patch + 1))
