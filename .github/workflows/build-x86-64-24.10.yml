@@ -190,6 +190,7 @@ jobs:
           fi
           echo "#### 用户名: \`root\` 密码：无" >> info.md
           echo "#### 默认软件包大小: ${{ github.event.inputs.profile }} MB" >> info.md
+          cat info.md
 
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
