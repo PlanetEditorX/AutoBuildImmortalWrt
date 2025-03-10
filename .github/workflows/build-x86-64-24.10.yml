@@ -1,6 +1,10 @@
 name: build-x86-64-immortalwrt-24.10.0
-
 on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 10 * * 1'  # 每周一的上午10点（UTC时间，对应北京时间下午6点）
   workflow_dispatch:
     inputs:
       profile:
