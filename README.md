@@ -54,4 +54,4 @@ opkg install luci-i18n-nikki-zh-cn
 - 下载：```https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/master/nikki```
 - 使用hfs传递文件：```curl http://192.168.3.23/nikki > nikki```
 ### 4.配置文件中添加订阅并更新
-
+- 插件配置中选择配置文件后启动
