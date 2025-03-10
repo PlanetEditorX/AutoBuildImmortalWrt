@@ -86,8 +86,10 @@ jobs:
           # 解压
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
           for file in *squashfs-combined-efi.img.gz; do
+            ls
+            echo "Gunzip $file"
             # 解压
-            gunzip $file
+            gunzip --verbose $file
 
             # 提取文件名的前面部分(去掉 .img.gz)
             base_name="${file%.img.gz}"
