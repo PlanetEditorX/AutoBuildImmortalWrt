@@ -39,10 +39,35 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install qemu-utils
+      - name: Get latest tag And Increment
+        run: |
+          # 获取最新的 tag
+          latest_tag=$(curl -s https://api.github.com/repos/PlanetEditorX/AutoBuildImmortalWrt/tags | jq -r '.[0].name')
+
+          # 提取版本号部分
+          version=$(echo "$latest_tag" | sed 's/^Autobuild-x86-64-//')
+
+          # 递增补丁版本号
+          patch=$((version + 1))
+          # 如果补丁版本号达到10，重置为0并递增次版本号
+          if [ $patch -eq 10 ]; then
+              patch=0
+              minor=$((minor + 1))
+              # 如果次版本号达到10，重置为0并递增主版本号
+              if [ $minor -eq 10 ]; then
+                  minor=0
+                  major=$((major + 1))
+              fi
+          fi
+          # 构造新版本号
+          NEW_VERSION="$major.$minor.$patch"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Install Software
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-utils
+          sudo apt-get install -y jq
 
       - name: Set executable permissions
         run: chmod +x ${{ github.workspace }}/x86-64/build.sh
@@ -136,7 +161,7 @@ jobs:
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: Autobuild-x86-64-v1.0.0
+          tag_name: Autobuild-x86-64-${NEW_VERSION}
           body_path: ${{ github.workspace }}/info.md
           files: |
             ${{ github.workspace }}/*squashfs-combined-efi.*.gz
