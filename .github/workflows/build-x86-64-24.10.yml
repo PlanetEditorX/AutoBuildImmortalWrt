@@ -85,18 +85,22 @@ jobs:
         run: |
           # 解压
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
-          gunzip openwrt-x86-64-generic-squashfs-combined-efi.img.gz
+          for file in *squashfs-combined-efi.img.gz; do
+            # 解压
+            gunzip $file
 
-          # 镜像转换
-          qemu-img convert -f raw -O iso openwrt-x86-64-generic-squashfs-combined-efi.img openwrt-x86-64-generic-squashfs-combined-efi.iso
+            # 提取文件名的前面部分(去掉 .img.gz)
+            base_name="${file%.img.gz}"
+
+            # 输出文件名并保存到变量
+            echo "Base name saved to variable: $base_name"
+
+            # 镜像转换
+            qemu-img convert -f raw -O iso ${base_name}.img ${base_name}.iso
+          done
 
           # 压缩iso文件
           gzip -k -f openwrt-x86-64-generic-squashfs-combined-efi.iso
-
-          for file in *squashfs-combined-efi.img.gz; do
-            sha256sum "$file" > "$file.sha256"
-            sha256sum -c "$file.sha256"
-          done
 
       - name: Generate Firmware SHA-256
         run: |
