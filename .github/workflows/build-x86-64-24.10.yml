@@ -69,11 +69,11 @@ jobs:
       # - name: Set up Docker Buildx
       #   uses: docker/setup-buildx-action@v3
 
-      # - name: Login to Docker Hub
-      #   uses: docker/login-action@v3
-      #   with:
-      #     username: ${{ secrets.DOCKER_USERNAME }}
-      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Get latest tag And Increment Version
         run: |
@@ -182,8 +182,25 @@ jobs:
             # 解压
             gunzip -k $file
           done
+      
+      - name: IMG Convert ISO for x86-64
+        run: |
+          for file in *-x86-64-generic-squashfs-combined-efi.img; do
+            # 提取文件名的前面部分(去掉 .img)
+            base_name="${file%.img}"
+
+            # 输出文件名并保存到变量
+            echo "Base name saved to variable: $base_name"
+
+            # 镜像转换
+            # 将 img 转换为 qcow2
+            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+          done
+
+          # 压缩qcow2文件
+          gzip -k -f ${base_name}.qcow2
           
-      - name: Build ImmortalWrt-armsr-armv8
+      - name: Build ImmortalWrt-armsr-armv8-efi
         run: |
           profiles=$PROFILE
           include_docker=$INCLUDE_DOCKER
@@ -222,33 +239,18 @@ jobs:
           # 新增标签并推送
           docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
           docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
           # 去除 VERSION 中的 "v"
           tags=$(echo "$VERSION" | sed 's/^v//')
           echo "Tags: $tags"
           docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
           docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
+          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:latest
           docker ps -a
-
-      - name: IMG Convert ISO
-        run: |
-          for file in *-x86-64-generic-squashfs-combined-efi.img.gz; do
-            # 提取文件名的前面部分(去掉 .img)
-            base_name="${file%.img}"
-
-            # 输出文件名并保存到变量
-            echo "Base name saved to variable: $base_name"
-
-            # 镜像转换
-            # 将 img 转换为 qcow2
-            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
-          done
-
-          # 压缩qcow2文件
-          gzip -k -f ${base_name}.qcow2
 
       - name: Generate Firmware SHA-256
         run: |
