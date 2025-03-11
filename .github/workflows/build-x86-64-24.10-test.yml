@@ -276,40 +276,34 @@ jobs:
             --name immortalwrt-arm64 \
             --platform linux/arm64 \
             --privileged \
-            -v "${{ github.workspace }}/files/etc/:/etc/" \
             immortalwrt:initial-arm64 \
             /bin/sh -c "while true; do sleep 1000; done"
 
           docker exec immortalwrt-arm64 sh -c "
-            ls -l
-            sh /etc/uci-defaults/init.sh
+            mkdir -p /tmp/log /var/lock
+            opkg update
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
           "
 
-          # docker exec immortalwrt-arm64 sh -c "
-          #   mkdir -p /tmp/log /var/lock
-          #   opkg update
-          #   opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
-          # "
+      - name: Commit modified container in immortalwrt-arm64
+        run: |
+          docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
+            config interface 'loopback'
+              option device 'lo'
+              option proto 'static'
+              option ipaddr '127.0.0.1'
+              option netmask '255.0.0.0'
 
-      # - name: Commit modified container in immortalwrt-arm64
-      #   run: |
-      #     docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
-      #       config interface 'loopback'
-      #         option device 'lo'
-      #         option proto 'static'
-      #         option ipaddr '127.0.0.1'
-      #         option netmask '255.0.0.0'
-
-      #       config interface 'lan'
-      #         option proto 'static'
-      #         option netmask '255.255.255.0'
-      #         option ip6assign '60'
-      #         option ipaddr '${ IPADDR }'
-      #         option gateway '${ GATEWAY }'
-      #         option dns '223.5.5.5 1.1.1.1'
-      #         option device 'eth0'
-      #       EOF"
-      #     docker commit immortalwrt-arm64 immortalwrt:arm64
+            config interface 'lan'
+              option proto 'static'
+              option netmask '255.255.255.0'
+              option ip6assign '60'
+              option ipaddr '${ IPADDR }'
+              option gateway '${ GATEWAY }'
+              option dns '223.5.5.5 1.1.1.1'
+              option device 'eth0'
+            EOF"
+          docker commit immortalwrt-arm64 immortalwrt:arm64
 
       - name: Run container in immortalwrt-amd64
         run: |
