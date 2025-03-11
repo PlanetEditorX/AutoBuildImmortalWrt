@@ -212,7 +212,7 @@ jobs:
         continue-on-error: true
         run: |
           tree -a
-          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*squashfs-combined-efi.img.{qcow2,gz} ${{ github.workspace }}
+          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-efi.img.{qcow2,gz} ${{ github.workspace }}
           ls -l ${{ github.workspace }}
           
       - name: Containers To Image And Push Docker Image
@@ -229,10 +229,11 @@ jobs:
           
           # 去除 VERSION 中的 "v"
           tags=$(echo "$VERSION" | sed 's/^v//')
-          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-amd
-          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-arm
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-amd
-          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-arm
+          echo "Tags: $tags"
+          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
+          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
           docker ps -a
 
       # - name: IMG Convert ISO
