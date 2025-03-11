@@ -156,8 +156,7 @@ jobs:
           for profile in "${profile_array[@]}"; do
             echo "Building for profile: $profile"
             echo "Run Containers for amd64"
-            docker run -i \
-              --name immortalwrt-amd64 \
+            docker run -rm -i \
               --user root \
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
               -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
@@ -209,8 +208,7 @@ jobs:
           for profile in "${profile_array[@]}"; do
             echo "Building for profile: $profile"
             echo "Run Containers for armv8"
-            docker run -i \
-              --name immortalwrt-arm64 \
+            docker run -rm -i \
               --user root \
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
               -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
@@ -233,6 +231,32 @@ jobs:
 
       - name: Containers To Image And Push Docker Image
         run: |
+          docker run -i \
+            --name immortalwrt-amd64 \
+            --user root \
+            -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+            -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+            -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
+            -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+            -e INCLUDE_DOCKER=$include_docker \
+            -e ENABLE_PPPOE=$ENABLE_PPPOE \
+            -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
+            -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
+            immortalwrt/imagebuilder:x86-64-openwrt-24.10 \
+            /bin/bash /home/build/immortalwrt/build.sh
+
+          docker run -i \
+            --name immortalwrt-arm64 \
+            --user root \
+            -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+            -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+            -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+            -e INCLUDE_DOCKER=$include_docker \
+            -e ENABLE_PPPOE=$ENABLE_PPPOE \
+            -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
+            -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
+            immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 \
+            /bin/bash /home/build/immortalwrt/build.sh
           # 将容器打包为镜像
           docker commit immortalwrt-amd64 immortalwrt:amd64
           docker commit immortalwrt-arm64 immortalwrt:arm64
@@ -284,7 +308,7 @@ jobs:
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
+          tag_name: Autobuild-x86-64-$VERSION
           body_path: ${{ github.workspace }}/info.md
           files: |
             ${{ github.workspace }}/*squashfs-combined-efi.*.gz
