@@ -272,7 +272,7 @@ jobs:
 
       - name: Run container in immortalwrt-arm64
         run: |
-          docker run-i \
+          docker run -i \
             --name immortalwrt-arm64 \
             --user root \
             --platform linux/arm64 \
