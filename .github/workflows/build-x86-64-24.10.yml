@@ -58,7 +58,7 @@ jobs:
       ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
       PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
       PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
-      VERSION: ${{ github.event.inputs.version || 'v1.0.0' }}
+      VERSION: ${{ github.event.inputs.version || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
