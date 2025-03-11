@@ -136,7 +136,7 @@ jobs:
             fi
           fi
 
-      - name: Build ImmortalWrt-x86-64-efi
+      - name: Build ImmortalWrt-x86-64-efi for x86-64
         run: |
           profiles="${{ github.event.inputs.profile }}"
           include_docker="${{ github.event.inputs.include_docker }}"
@@ -158,7 +158,27 @@ jobs:
               -e PPPOE_ACCOUNT=${{ inputs.pppoe_account }} \
               -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
               immortalwrt/imagebuilder:x86-64-openwrt-24.10 /bin/bash /home/build/immortalwrt/build.sh
+          done
+          
+      - name: GET IMG
+        continue-on-error: true
+        run: |
+          cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
+          for file in *squashfs-combined-efi.img.gz; do
+            ls
+            echo "Gunzip $file"
+            # 解压
+            gunzip -k $file
+          done
+          
+      - name: Build ImmortalWrt-x86-64-efi for armv8
+        run: |
+          profiles="${{ github.event.inputs.profile }}"
+          include_docker="${{ github.event.inputs.include_docker }}"
+          IFS=',' read -r -a profile_array <<< "$profiles"
 
+          for profile in "${profile_array[@]}"; do
+            echo "Building for profile: $profile"
               echo "Run Containers for armv8"
               docker run -d -i \
               --name immortalwrt-arm
@@ -174,17 +194,8 @@ jobs:
               -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
               immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 /bin/bash /home/build/immortalwrt/build.sh
           done
+          
 
-      # - name: GET IMG
-      #   continue-on-error: true
-      #   run: |
-      #     cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
-      #     for file in *squashfs-combined-efi.img.gz; do
-      #       ls
-      #       echo "Gunzip $file"
-      #       # 解压
-      #       gunzip -k $file
-      #     done
 
       # - name: IMG Convert ISO
       #   run: |
