@@ -58,7 +58,7 @@ jobs:
       ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
       PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
       PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
-      VERSION: ${{ github.event.inputs.version || '' }}
+      VERSION: ${{ github.event.inputs.version || 'v' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -212,7 +212,7 @@ jobs:
         continue-on-error: true
         run: |
           tree -a
-          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-efi.img.{qcow2,gz} ${{ github.workspace }}
+          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-efi.{qcow2,img.gz} ${{ github.workspace }}
           ls -l ${{ github.workspace }}
           
       - name: Containers To Image And Push Docker Image
@@ -220,13 +220,13 @@ jobs:
           # 将容器打包为镜像
           # docker commit immortalwrt-amd64 immortalwrt:amd64
           docker commit immortalwrt-arm64 immortalwrt:arm64
-          
+          docker ps -a
           # 新增标签并推送
           # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
           docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
-          
+          docker ps -a
           # 去除 VERSION 中的 "v"
           tags=$(echo "$VERSION" | sed 's/^v//')
           echo "Tags: $tags"
