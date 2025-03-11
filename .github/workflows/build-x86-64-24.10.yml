@@ -211,86 +211,83 @@ jobs:
         continue-on-error: true
         run: |
           tree -a
-          cp ${{ github.workspace }}/bin/targets/armsr/armv8/-squashfs-combined-efi.* ${{ github.workspace }}
+          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
           ls -l ${{ github.workspace }}
           
       - name: Containers To Image And Push Docker Image
         run: |
           # 将容器打包为镜像
-          # docker commit immortalwrt-amd64 immortalwrt:amd64
+          docker commit immortalwrt-amd64 immortalwrt:amd64
           docker commit immortalwrt-arm64 immortalwrt:arm64
-          docker ps -a
           # 新增标签并推送
-          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
           docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
-          docker ps -a
           # 去除 VERSION 中的 "v"
           tags=$(echo "$VERSION" | sed 's/^v//')
           echo "Tags: $tags"
-          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
           docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
           # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
           docker ps -a
 
-      # - name: IMG Convert ISO
-      #   run: |
-      #     for file in *squashfs-combined-efi.img; do
-      #       # 提取文件名的前面部分(去掉 .img)
-      #       base_name="${file%.img}"
+      - name: IMG Convert ISO
+        run: |
+          for file in *-x86-64-generic-squashfs-combined-efi.img.gz; do
+            # 提取文件名的前面部分(去掉 .img)
+            base_name="${file%.img}"
 
-      #       # 输出文件名并保存到变量
-      #       echo "Base name saved to variable: $base_name"
+            # 输出文件名并保存到变量
+            echo "Base name saved to variable: $base_name"
 
-      #       # 镜像转换
-      #       # 将 img 转换为 qcow2
-      #       qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+            # 镜像转换
+            # 将 img 转换为 qcow2
+            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+          done
 
-      #     done
+          # 压缩qcow2文件
+          gzip -k -f ${base_name}.qcow2
 
-      #     # 压缩qcow2文件
-      #     gzip -k -f ${base_name}.qcow2
+      - name: Generate Firmware SHA-256
+        run: |
+          for file in *squashfs-combined-efi.*gz; do
+            sha256sum "$file" > "$file.sha256"
+            sha256sum -c "$file.sha256"
+          done
 
-      # - name: Generate Firmware SHA-256
-      #   run: |
-      #     for file in *squashfs-combined-efi.*gz; do
-      #       sha256sum "$file" > "$file.sha256"
-      #       sha256sum -c "$file.sha256"
-      #     done
+      - name: Create info
+        run: |
+          if [ $INCLUDE_DOCKER == "yes" ]; then
+            extra_content="#### 默认带docker"
+            echo -e "\n $extra_content" >> ${{ github.workspace }}/info.md
+          else
+            echo -e "NO docker"
+          fi
 
-      # - name: Create info
-      #   run: |
-      #     if [ $INCLUDE_DOCKER == "yes" ]; then
-      #       extra_content="#### 默认带docker"
-      #       echo -e "\n $extra_content" >> ${{ github.workspace }}/info.md
-      #     else
-      #       echo -e "NO docker"
-      #     fi
+      - name: Generate info.md
+        run: |
+          # 创建或修改 info.md 文件
+          echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
+          if [ -n $IPADDR ]; then
+            echo "#### 固件地址: \`$IPADDR\`" >> info.md
+          else
+            echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
+          fi
+          echo "#### 用户名: \`root\` 密码：无" >> info.md
+          echo "#### 默认软件包大小: $PROFILE MB" >> info.md
+          cat info.md
 
-      # - name: Generate info.md
-      #   run: |
-      #     # 创建或修改 info.md 文件
-      #     echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
-      #     if [ -n $IPADDR ]; then
-      #       echo "#### 固件地址: \`$IPADDR\`" >> info.md
-      #     else
-      #       echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
-      #     fi
-      #     echo "#### 用户名: \`root\` 密码：无" >> info.md
-      #     echo "#### 默认软件包大小: $PROFILE MB" >> info.md
-      #     cat info.md
-
-      # - name: Upload ImmortWrt as release assets
-      #   uses: softprops/action-gh-release@v2.2.1
-      #   with:
-      #     tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
-      #     body_path: ${{ github.workspace }}/info.md
-      #     files: |
-      #       ${{ github.workspace }}/*squashfs-combined-efi.*.gz
-      #       ${{ github.workspace }}/*.sha256
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload ImmortWrt as release assets
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
+          body_path: ${{ github.workspace }}/info.md
+          files: |
+            ${{ github.workspace }}/*squashfs-combined-efi.*.gz
+            ${{ github.workspace }}/*.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
