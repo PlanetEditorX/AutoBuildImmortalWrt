@@ -132,8 +132,6 @@ jobs:
       - name: Replace custom_ip value
         if: ${{ env.IPADDR != '' }}
         run: |
-          # sed -i 's/custom_ip="dhcp"/custom_ip=\"$IPADDR\"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
-          # sed -i 's/custom_gateway=""/custom_gateway=\"$GATEWAY\"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
           sed -i "s/custom_ip=\"dhcp\"/custom_ip=\"$IPADDR\"/g" ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
           sed -i "s/custom_gateway=\"\"/custom_gateway=\"$GATEWAY\"/g" ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
           cat ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
@@ -191,8 +189,7 @@ jobs:
             # 输出文件名并保存到变量
             echo "Base name saved to variable: $base_name"
 
-            # 镜像转换
-            # 将 img 转换为 qcow2
+            # 镜像转换, 将 img 转换为 qcow2
             qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
           done
 
