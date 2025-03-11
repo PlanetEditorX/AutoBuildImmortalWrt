@@ -132,8 +132,8 @@ jobs:
       - name: Replace custom_ip value
         if: ${{ env.IPADDR != '' }}
         run: |
-          sed -i 's/custom_ip="dhcp"/custom_ip=$IPADDR/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
-          sed -i 's/custom_gateway=""/custom_gateway=$GATEWAY/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_ip="dhcp"/custom_ip=\"$IPADDR\"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_gateway=""/custom_gateway=\"$GATEWAY\"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
           cat ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
 
       - name: Validate PPPoE Inputs
@@ -154,7 +154,8 @@ jobs:
           for profile in "${profile_array[@]}"; do
             echo "Building for profile: $profile"
             echo "Run Containers for x86-64"
-            docker run --rm -i \
+            docker run -i \
+              --name immortalwrt-amd
               --user root \
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
               -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
