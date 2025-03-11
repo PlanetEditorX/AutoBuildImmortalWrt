@@ -14,7 +14,7 @@ on:
       ipaddr:
         description: '输入管理IP(空为DHCP获取)'
         required: false
-        default: '192.168.3.33'
+        default: '192.168.3.100'
       gateway:
         description: '输入默认网关'
         required: false
@@ -50,6 +50,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    env:
+      PROFILE: ${{ github.event.inputs.profile || '512' }}
+      IPADDR: ${{ github.event.inputs.ipaddr || '192.168.3.100' }}
+      GATEWAY: ${{ github.event.inputs.gateway || '192.168.3.1' }}
+      INCLUDE_DOCKER: ${{ github.event.inputs.include_docker || 'no' }}
+      ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
+      PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
+      PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
+      VERSION: ${{ github.event.inputs.version || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -65,12 +74,12 @@ jobs:
       #   with:
       #     username: ${{ secrets.DOCKER_USERNAME }}
       #     password: ${{ secrets.DOCKER_PASSWORD }}
-          
+
       - name: Get latest tag And Increment Version
         run: |
           # 输入不为空时以输入为准
-          if [ "${{ github.event.inputs.version }}" != "" ]; then
-            NEW_VERSION=${{ github.event.inputs.version }}
+          if [ $VERSION != "" ]; then
+            NEW_VERSION=$VERSION
           else
             # 为空以获取为准
             # 获取最新的 tag 提取版本号部分
@@ -121,10 +130,10 @@ jobs:
         run: chmod +x ${{ github.workspace }}/x86-64/build.sh
 
       - name: Replace custom_ip value
-        if: github.event.inputs.ipaddr != ''
+        if: ${{ env.IPADDR != '' }}
         run: |
-          sed -i 's/custom_ip="dhcp"/custom_ip="${{ github.event.inputs.ipaddr }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
-          sed -i 's/custom_gateway=""/custom_gateway="${{ github.event.inputs.gateway }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_ip="dhcp"/custom_ip=$IPADDR/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_gateway=""/custom_gateway=$GATEWAY/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
           cat ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
 
       - name: Validate PPPoE Inputs
@@ -138,8 +147,8 @@ jobs:
 
       - name: Build ImmortalWrt-x86-64-efi for x86-64
         run: |
-          profiles="${{ github.event.inputs.profile }}"
-          include_docker="${{ github.event.inputs.include_docker }}"
+          profiles=$PROFILE
+          include_docker=$INCLUDE_DOCKER
           IFS=',' read -r -a profile_array <<< "$profiles"
 
           for profile in "${profile_array[@]}"; do
@@ -175,8 +184,8 @@ jobs:
           
       - name: Build ImmortalWrt-x86-64-efi for armv8
         run: |
-          profiles="${{ github.event.inputs.profile }}"
-          include_docker="${{ github.event.inputs.include_docker }}"
+          profiles=$PROFILE
+          include_docker=$INCLUDE_DOCKER
           IFS=',' read -r -a profile_array <<< "$profiles"
 
           for profile in "${profile_array[@]}"; do
@@ -226,7 +235,7 @@ jobs:
 
       # - name: Create info
       #   run: |
-      #     if [ "${{ github.event.inputs.include_docker }}" == "yes" ]; then
+      #     if [ $INCLUDE_DOCKER == "yes" ]; then
       #       extra_content="#### 默认带docker"
       #       echo -e "\n $extra_content" >> ${{ github.workspace }}/info.md
       #     else
@@ -237,13 +246,13 @@ jobs:
       #   run: |
       #     # 创建或修改 info.md 文件
       #     echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
-      #     if [ -n "${{ github.event.inputs.ipaddr }}" ]; then
-      #       echo "#### 固件地址: \`${{ github.event.inputs.ipaddr }}\`" >> info.md
+      #     if [ -n $IPADDR ]; then
+      #       echo "#### 固件地址: \`$IPADDR\`" >> info.md
       #     else
       #       echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
       #     fi
       #     echo "#### 用户名: \`root\` 密码：无" >> info.md
-      #     echo "#### 默认软件包大小: ${{ github.event.inputs.profile }} MB" >> info.md
+      #     echo "#### 默认软件包大小: $PROFILE MB" >> info.md
       #     cat info.md
 
       # - name: Upload ImmortWrt as release assets
