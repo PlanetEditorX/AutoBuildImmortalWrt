@@ -10,6 +10,11 @@ option overlay_root /tmp
 arch all 10
 arch arm64 100
 arch amd64 200" > /etc/opkg.conf
+echo "$(date '+%Y-%m-%d %H:%M:%S') - opkg.conf创建成功..."
+
+echo "$(date '+%Y-%m-%d %H:%M:%S') - 创建配置文件夹"
+mkdir -p /tmp/log /var/lock
+echo "$(date '+%Y-%m-%d %H:%M:%S') - 配置文件夹创建成功"
 
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 安装插件..."
@@ -24,5 +29,4 @@ chmod +x 99-custom.sh
 bash 99-custom.sh
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 网络初始化完成"
 
-echo "$(date '+%Y-%m-%d %H:%M:%S') - 创建文件夹"
-mkdir -p /tmp/log /var/lock
+
