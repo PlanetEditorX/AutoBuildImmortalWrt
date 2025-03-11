@@ -296,12 +296,12 @@ jobs:
 
             config interface 'lan'
               option proto 'static'
-              option netmask '255.255.255.0'
-              option ip6assign '60'
-              option ipaddr '${ IPADDR }'
-              option gateway '${ GATEWAY }'
-              option dns '223.5.5.5 1.1.1.1'
               option device 'eth0'
+              option ipaddr '${IPADDR}'
+              option netmask '255.255.255.0'
+              option gateway '${GATEWAY}'
+              list dns '223.5.5.5'
+              list dns '1.1.1.1'
             EOF"
           docker commit immortalwrt-arm64 immortalwrt:arm64
 
@@ -331,12 +331,12 @@ jobs:
 
             config interface 'lan'
               option proto 'static'
-              option netmask '255.255.255.0'
-              option ip6assign '60'
-              option ipaddr '${ IPADDR }'
-              option gateway '${ GATEWAY }'
-              option dns '223.5.5.5 1.1.1.1'
               option device 'eth0'
+              option ipaddr '${IPADDR}'
+              option netmask '255.255.255.0'
+              option gateway '${GATEWAY}'
+              list dns '223.5.5.5'
+              list dns '1.1.1.1'
             EOF"
           docker commit immortalwrt-amd64 immortalwrt:amd64
 
