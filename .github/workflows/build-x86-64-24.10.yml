@@ -155,9 +155,9 @@ jobs:
 
           for profile in "${profile_array[@]}"; do
             echo "Building for profile: $profile"
-            echo "Run Containers for x86-64"
+            echo "Run Containers for amd64"
             docker run -i \
-              --name immortalwrt-amd \
+              --name immortalwrt-amd64 \
               --user root \
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
               -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
@@ -171,8 +171,22 @@ jobs:
               immortalwrt/imagebuilder:x86-64-openwrt-24.10.0 \
               /bin/bash /home/build/immortalwrt/build.sh
           done
+
+      - name: Push modified Docker image amd64
+        run: |
+          docker images
+          # 将容器打包为镜像
+          docker commit immortalwrt-amd64 immortalwrt:amd64
+          docker images
+          # # 新增标签并推送
+          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          # # 去除 VERSION 中的 "v"
+          # tags=$(echo "$VERSION" | sed 's/^v//')
+          # docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-amd
+          # docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:$tags-amd
           
-      - name: GET IMG
+      - name: GET IMG for x86-64
         continue-on-error: true
         run: |
           sudo apt-get install tree
