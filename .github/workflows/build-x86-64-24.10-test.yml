@@ -147,87 +147,87 @@ jobs:
             fi
           fi
 
-      - name: Build ImmortalWrt-x86-64-efi
-        run: |
-          profiles=$PROFILE
-          include_docker=$INCLUDE_DOCKER
-          IFS=',' read -r -a profile_array <<< "$profiles"
+      # - name: Build ImmortalWrt-x86-64-efi
+      #   run: |
+      #     profiles=$PROFILE
+      #     include_docker=$INCLUDE_DOCKER
+      #     IFS=',' read -r -a profile_array <<< "$profiles"
 
-          for profile in "${profile_array[@]}"; do
-            echo "Building for profile: $profile"
-            echo "Run Containers for amd64"
-            docker run --rm -i \
-              --user root \
-              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
-              -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
-              -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
-              -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
-              -e PROFILE=$profile \
-              -e INCLUDE_DOCKER=$include_docker \
-              -e ENABLE_PPPOE=$ENABLE_PPPOE \
-              -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
-              -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
-              immortalwrt/imagebuilder:x86-64-openwrt-24.10 \
-              /bin/bash /home/build/immortalwrt/build.sh
-          done
+      #     for profile in "${profile_array[@]}"; do
+      #       echo "Building for profile: $profile"
+      #       echo "Run Containers for amd64"
+      #       docker run --rm -i \
+      #         --user root \
+      #         -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+      #         -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+      #         -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
+      #         -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+      #         -e PROFILE=$profile \
+      #         -e INCLUDE_DOCKER=$include_docker \
+      #         -e ENABLE_PPPOE=$ENABLE_PPPOE \
+      #         -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
+      #         -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
+      #         immortalwrt/imagebuilder:x86-64-openwrt-24.10 \
+      #         /bin/bash /home/build/immortalwrt/build.sh
+      #     done
 
-      - name: GET IMG for x86-64
-        continue-on-error: true
-        run: |
-          cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
-          for file in *squashfs-combined-efi.img.gz; do
-            ls
-            echo "Gunzip $file"
-            # 解压
-            gunzip -k $file
-          done
+      # - name: GET IMG for x86-64
+      #   continue-on-error: true
+      #   run: |
+      #     cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
+      #     for file in *squashfs-combined-efi.img.gz; do
+      #       ls
+      #       echo "Gunzip $file"
+      #       # 解压
+      #       gunzip -k $file
+      #     done
 
-      - name: IMG Convert Qcow2 for x86-64
-        run: |
-          for file in *-x86-64-generic-squashfs-combined-efi.img; do
-            # 提取文件名的前面部分(去掉 .img)
-            base_name="${file%.img}"
+      # - name: IMG Convert Qcow2 for x86-64
+      #   run: |
+      #     for file in *-x86-64-generic-squashfs-combined-efi.img; do
+      #       # 提取文件名的前面部分(去掉 .img)
+      #       base_name="${file%.img}"
 
-            # 输出文件名并保存到变量
-            echo "Base name saved to variable: $base_name"
+      #       # 输出文件名并保存到变量
+      #       echo "Base name saved to variable: $base_name"
 
-            # 镜像转换
-            # 将 img 转换为 qcow2
-            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
-          done
+      #       # 镜像转换
+      #       # 将 img 转换为 qcow2
+      #       qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+      #     done
 
-          # 压缩qcow2文件
-          gzip -k -f ${base_name}.qcow2
+      #     # 压缩qcow2文件
+      #     gzip -k -f ${base_name}.qcow2
 
-      - name: Build ImmortalWrt-armsr-armv8-efi
-        run: |
-          profiles=$PROFILE
-          include_docker=$INCLUDE_DOCKER
-          IFS=',' read -r -a profile_array <<< "$profiles"
+      # - name: Build ImmortalWrt-armsr-armv8-efi
+      #   run: |
+      #     profiles=$PROFILE
+      #     include_docker=$INCLUDE_DOCKER
+      #     IFS=',' read -r -a profile_array <<< "$profiles"
 
-          for profile in "${profile_array[@]}"; do
-            echo "Building for profile: $profile"
-            echo "Run Containers for armv8"
-            docker run --rm -i \
-              --user root \
-              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
-              -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
-              -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
-              -e PROFILE=$profile \
-              -e INCLUDE_DOCKER=$include_docker \
-              -e ENABLE_PPPOE=$ENABLE_PPPOE \
-              -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
-              -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
-              immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 \
-              /bin/bash /home/build/immortalwrt/build.sh
-          done
+      #     for profile in "${profile_array[@]}"; do
+      #       echo "Building for profile: $profile"
+      #       echo "Run Containers for armv8"
+      #       docker run --rm -i \
+      #         --user root \
+      #         -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+      #         -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+      #         -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+      #         -e PROFILE=$profile \
+      #         -e INCLUDE_DOCKER=$include_docker \
+      #         -e ENABLE_PPPOE=$ENABLE_PPPOE \
+      #         -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
+      #         -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
+      #         immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 \
+      #         /bin/bash /home/build/immortalwrt/build.sh
+      #     done
 
-      - name: GET IMG, Qcow2 And Vmdk for armv8
-        continue-on-error: true
-        run: |
-          tree -a
-          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
-          ls -l ${{ github.workspace }}
+      # - name: GET IMG, Qcow2 And Vmdk for armv8
+      #   continue-on-error: true
+      #   run: |
+      #     tree -a
+      #     cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
+      #     ls -l ${{ github.workspace }}
 
       - name: Download and Extract RootFS
         run: |
@@ -272,7 +272,7 @@ jobs:
 
       - name: Run container in immortalwrt-arm64
         run: |
-          docker run -d -i \
+          docker run-i \
             --name immortalwrt-arm64 \
             --user root \
             --platform linux/arm64 \
@@ -283,7 +283,7 @@ jobs:
 
       - name: Run container in immortalwrt-amd64
         run: |
-          docker run -d -i \
+          docker run -i \
             --name immortalwrt-amd64 \
             --user root \
             -v "${{ github.workspace }}/files/etc/:/etc" \
