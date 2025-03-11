@@ -163,12 +163,8 @@ jobs:
       - name: GET IMG
         continue-on-error: true
         run: |
-          ls
-          ls -l ${{ github.workspace }}
-          ls -l ${{ github.workspace }}/bin/
-          ls -l ${{ github.workspace }}/bin/targets/
-          ls -l ${{ github.workspace }}/bin/targets/x86/
-          ls -l ${{ github.workspace }}/bin/targets/x86/64/
+          sudo apt-get install tree
+          tree -a
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
           for file in *squashfs-combined-efi.img.gz; do
             ls
