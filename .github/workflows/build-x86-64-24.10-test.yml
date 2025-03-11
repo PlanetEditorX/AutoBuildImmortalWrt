@@ -279,7 +279,7 @@ jobs:
             -v "${{ github.workspace }}/files/etc/:/etc" \
             -v "${{ github.workspace }}/x86-64/24.10/docker-build.sh:/etc/uci-defaults/build.sh" \
             immortalwrt:initial-arm64 \
-            /bin/bash /etc/uci-defaults/build.sh
+            /bin/sh /etc/uci-defaults/build.sh
 
       - name: Run container in immortalwrt-amd64
         run: |
@@ -289,7 +289,7 @@ jobs:
             -v "${{ github.workspace }}/files/etc/:/etc" \
             -v "${{ github.workspace }}/x86-64/24.10/docker-build.sh:/etc/uci-defaults/build.sh" \
             immortalwrt:initial-amd64 \
-            /bin/bash /etc/uci-defaults/build.sh
+            /bin/sh /etc/uci-defaults/build.sh
 
       - name: Containers To Image And Push Docker Image
         run: |
