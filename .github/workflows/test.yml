@@ -1,4 +1,4 @@
-name: build-x86-64-immortalwrt-test
+name: build-x86-64-immortalwrt-24.10.0-test
 
 on:
   push:
@@ -135,53 +135,53 @@ jobs:
             # 解压
             gunzip -k $file
           done
-      # - name: IMG Convert ISO
-      #   run: |
-      #     for file in *squashfs-combined-efi.img; do
-      #       # 提取文件名的前面部分(去掉 .img)
-      #       base_name="${file%.img}"
-      #       # 输出文件名并保存到变量
-      #       echo "Base name saved to variable: $base_name"
-      #       # 镜像转换
-      #       # 将 img 转换为 qcow2
-      #       qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
-      #     done
-      #     # 压缩qcow2文件
-      #     gzip -k -f ${base_name}.qcow2
-      # - name: Generate Firmware SHA-256
-      #   run: |
-      #     for file in *squashfs-combined-efi.*gz; do
-      #       sha256sum "$file" > "$file.sha256"
-      #       sha256sum -c "$file.sha256"
-      #     done
-      # - name: Create info
-      #   run: |
-      #     if [ "${{ github.event.inputs.include_docker }}" == "yes" ]; then
-      #       extra_content="#### 默认带docker"
-      #       echo -e "\n $extra_content" >> ${{ github.workspace }}/info.md
-      #     else
-      #       echo -e "NO docker"
-      #     fi
-      # - name: Generate info.md
-      #   run: |
-      #     # 创建或修改 info.md 文件
-      #     echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
-      #     if [ -n "${{ github.event.inputs.ipaddr }}" ]; then
-      #       echo "#### 固件地址: \`${{ github.event.inputs.ipaddr }}\`" >> info.md
-      #     else
-      #       echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
-      #     fi
-      #     echo "#### 用户名: \`root\` 密码：无" >> info.md
-      #     echo "#### 默认软件包大小: ${{ github.event.inputs.profile }} MB" >> info.md
-      #     cat info.md
-      # - name: Upload ImmortWrt as release assets
-      #   uses: softprops/action-gh-release@v2.2.1
-      #   with:
-      #     tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
-      #     body_path: ${{ github.workspace }}/info.md
-      #     files: |
-      #       ${{ github.workspace }}/*squashfs-combined-efi.*.gz
-      #       ${{ github.workspace }}/*.sha256
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: IMG Convert ISO
+        run: |
+          for file in *squashfs-combined-efi.img; do
+            # 提取文件名的前面部分(去掉 .img)
+            base_name="${file%.img}"
+            # 输出文件名并保存到变量
+            echo "Base name saved to variable: $base_name"
+            # 镜像转换
+            # 将 img 转换为 qcow2
+            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+          done
+          # 压缩qcow2文件
+          gzip -k -f ${base_name}.qcow2
+      - name: Generate Firmware SHA-256
+        run: |
+          for file in *squashfs-combined-efi.*gz; do
+            sha256sum "$file" > "$file.sha256"
+            sha256sum -c "$file.sha256"
+          done
+      - name: Create info
+        run: |
+          if [ "${{ github.event.inputs.include_docker }}" == "yes" ]; then
+            extra_content="#### 默认带docker"
+            echo -e "\n $extra_content" >> ${{ github.workspace }}/info.md
+          else
+            echo -e "NO docker"
+          fi
+      - name: Generate info.md
+        run: |
+          # 创建或修改 info.md 文件
+          echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
+          if [ -n "${{ github.event.inputs.ipaddr }}" ]; then
+            echo "#### 固件地址: \`${{ github.event.inputs.ipaddr }}\`" >> info.md
+          else
+            echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
+          fi
+          echo "#### 用户名: \`root\` 密码：无" >> info.md
+          echo "#### 默认软件包大小: ${{ github.event.inputs.profile }} MB" >> info.md
+          cat info.md
+      - name: Upload ImmortWrt as release assets
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          tag_name: Autobuild-x86-64-${{ env.NEW_VERSION }}
+          body_path: ${{ github.workspace }}/info.md
+          files: |
+            ${{ github.workspace }}/*squashfs-combined-efi.*.gz
+            ${{ github.workspace }}/*.sha256
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
