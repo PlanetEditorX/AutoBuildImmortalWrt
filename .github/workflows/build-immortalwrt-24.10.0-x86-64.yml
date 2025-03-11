@@ -115,7 +115,7 @@ jobs:
           sudo apt-get install -y jq
 
       - name: Set executable permissions
-        run: chmod +x ${{ github.workspace }}/x86-64/build.sh
+        run: chmod +x ${{ github.workspace }}/x86-64/24.10/build.sh
 
       - name: Replace custom_ip value
         if: ${{ env.IPADDR != '' }}
