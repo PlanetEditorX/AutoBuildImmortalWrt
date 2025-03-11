@@ -1,8 +1,8 @@
 name: build-x86-64-immortalwrt-24.10.0
 on:
   push:
-    # branches:
-    #   - main
+    branches:
+      - main
   schedule:
     - cron: '0 10 * * 1'  # 每周一的上午10点（UTC时间，对应北京时间下午6点）
   workflow_dispatch:
@@ -111,53 +111,69 @@ jobs:
           echo "NEW_VERSION: ${NEW_VERSION}"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
-      # - name: Install Software
-      #   run: |
-      #     sudo apt-get update
-      #     sudo apt-get install -y qemu-utils
-      #     sudo apt-get install -y jq
+      - name: Install Software
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y jq
 
-      # - name: Set executable permissions
-      #   run: chmod +x ${{ github.workspace }}/x86-64/build.sh
+      - name: Set executable permissions
+        run: chmod +x ${{ github.workspace }}/x86-64/build.sh
 
-      # - name: Replace custom_ip value
-      #   if: github.event.inputs.ipaddr != ''
-      #   run: |
-      #     sed -i 's/custom_ip="dhcp"/custom_ip="${{ github.event.inputs.ipaddr }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
-      #     sed -i 's/custom_gateway=""/custom_gateway="${{ github.event.inputs.gateway }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
-      #     cat ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+      - name: Replace custom_ip value
+        if: github.event.inputs.ipaddr != ''
+        run: |
+          sed -i 's/custom_ip="dhcp"/custom_ip="${{ github.event.inputs.ipaddr }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          sed -i 's/custom_gateway=""/custom_gateway="${{ github.event.inputs.gateway }}"/g' ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
+          cat ${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh
 
-      # - name: Validate PPPoE Inputs
-      #   run: |
-      #     if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
-      #       if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
-      #         echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
-      #         exit 1
-      #       fi
-      #     fi
+      - name: Validate PPPoE Inputs
+        run: |
+          if [[ "${{ inputs.enable_pppoe }}" == "yes" ]]; then
+            if [[ -z "${{ inputs.pppoe_account }}" || -z "${{ inputs.pppoe_password }}" ]]; then
+              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
+              exit 1
+            fi
+          fi
 
-      # - name: Build ImmortalWrt-x86-64-efi
-      #   run: |
-      #     profiles="${{ github.event.inputs.profile }}"
-      #     include_docker="${{ github.event.inputs.include_docker }}"
-      #     IFS=',' read -r -a profile_array <<< "$profiles"
+      - name: Build ImmortalWrt-x86-64-efi
+        run: |
+          profiles="${{ github.event.inputs.profile }}"
+          include_docker="${{ github.event.inputs.include_docker }}"
+          IFS=',' read -r -a profile_array <<< "$profiles"
 
-      #     for profile in "${profile_array[@]}"; do
-      #       echo "Building for profile: $profile"
+          for profile in "${profile_array[@]}"; do
+            echo "Building for profile: $profile"
+            echo "Run Containers for x86-64"
+            docker run -d -i \
+              --name immortalwrt-amd
+              --user root \
+              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+              -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+              -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
+              -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+              -e PROFILE=$profile \
+              -e INCLUDE_DOCKER=$include_docker \
+              -e ENABLE_PPPOE=${{ inputs.enable_pppoe }} \
+              -e PPPOE_ACCOUNT=${{ inputs.pppoe_account }} \
+              -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
+              immortalwrt/imagebuilder:x86-64-openwrt-24.10 /bin/bash /home/build/immortalwrt/build.sh
 
-      #       docker run --rm -i \
-      #         --user root \
-      #         -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
-      #         -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
-      #         -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
-      #         -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
-      #         -e PROFILE=$profile \
-      #         -e INCLUDE_DOCKER=$include_docker \
-      #         -e ENABLE_PPPOE=${{ inputs.enable_pppoe }} \
-      #         -e PPPOE_ACCOUNT=${{ inputs.pppoe_account }} \
-      #         -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
-      #         immortalwrt/imagebuilder:x86-64-openwrt-24.10.0 /bin/bash /home/build/immortalwrt/build.sh
-      #     done
+              echo "Run Containers for armv8"
+              docker run -d -i \
+              --name immortalwrt-arm
+              --user root \
+              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+              -v "${{ github.workspace }}/files:/home/build/immortalwrt/files" \
+              -v "${{ github.workspace }}/x86-64/imm.config:/home/build/immortalwrt/.config" \
+              -v "${{ github.workspace }}/x86-64/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+              -e PROFILE=$profile \
+              -e INCLUDE_DOCKER=$include_docker \
+              -e ENABLE_PPPOE=${{ inputs.enable_pppoe }} \
+              -e PPPOE_ACCOUNT=${{ inputs.pppoe_account }} \
+              -e PPPOE_PASSWORD=${{ inputs.pppoe_password }} \
+              immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 /bin/bash /home/build/immortalwrt/build.sh
+          done
 
       # - name: GET IMG
       #   continue-on-error: true
