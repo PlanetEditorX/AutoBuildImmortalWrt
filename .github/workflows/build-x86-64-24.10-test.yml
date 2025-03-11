@@ -275,6 +275,7 @@ jobs:
           docker run -d -i \
             --name immortalwrt-arm64 \
             --user root \
+            --platform linux/arm64 \
             -v "${{ github.workspace }}/files/etc/:/etc" \
             -v "${{ github.workspace }}/x86-64/24.10/docker-build.sh:/etc/uci-defaults/build.sh" \
             immortalwrt:initial-arm64 \
