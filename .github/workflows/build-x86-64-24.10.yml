@@ -156,7 +156,7 @@ jobs:
           for profile in "${profile_array[@]}"; do
             echo "Building for profile: $profile"
             echo "Run Containers for x86-64"
-            docker run -d -i \
+            docker run -i \
               --name immortalwrt-amd \
               --user root \
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
