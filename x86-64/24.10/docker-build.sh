@@ -2,6 +2,15 @@
 # Log file for debugging
 LOGFILE="/tmp/uci-defaults-log.txt"
 
+echo "$(date '+%Y-%m-%d %H:%M:%S') - 生成opkg.conf..."
+echo "dest root /tmp
+dest ram /tmp
+lists_dir ext /tmp/opkg-lists
+option overlay_root /tmp
+arch all 10
+arch arm64 100
+arch amd64 200" > /etc/opkg.conf
+
 # 输出调试信息
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 安装插件..."
 
@@ -12,7 +21,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - 插件安装完成"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 网络初始化"
 chmod +x 99-custom.sh
-bash ./99-custom.sh
+bash 99-custom.sh
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 网络初始化完成"
 
 echo "$(date '+%Y-%m-%d %H:%M:%S') - 创建文件夹"

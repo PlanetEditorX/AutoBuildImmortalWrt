@@ -276,7 +276,7 @@ jobs:
             --name immortalwrt-arm64 \
             --user root \
             --platform linux/arm64 \
-            -v "${{ github.workspace }}/files/etc/:/etc" \
+            -v "${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh:/etc/uci-defaults/99-custom.sh" \
             -v "${{ github.workspace }}/x86-64/24.10/docker-build.sh:/etc/uci-defaults/build.sh" \
             immortalwrt:initial-arm64 \
             /bin/sh /etc/uci-defaults/build.sh
@@ -286,7 +286,7 @@ jobs:
           docker run -i \
             --name immortalwrt-amd64 \
             --user root \
-            -v "${{ github.workspace }}/files/etc/:/etc" \
+            -v "${{ github.workspace }}/files/etc/uci-defaults/99-custom.sh:/etc/uci-defaults/99-custom.sh" \
             -v "${{ github.workspace }}/x86-64/24.10/docker-build.sh:/etc/uci-defaults/build.sh" \
             immortalwrt:initial-amd64 \
             /bin/sh /etc/uci-defaults/build.sh
