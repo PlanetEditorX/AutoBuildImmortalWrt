@@ -58,7 +58,7 @@ jobs:
       ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
       PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
       PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
-      VERSION: ${{ github.event.inputs.version || 'v' }}
+      VERSION: ${{ github.event.inputs.version || 'v1.0.0' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -118,7 +118,7 @@ jobs:
             fi
           fi
           echo "NEW_VERSION: ${NEW_VERSION}"
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Install Software
         run: |
@@ -175,7 +175,6 @@ jobs:
       - name: GET IMG for x86-64
         continue-on-error: true
         run: |
-          tree -a
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
           for file in *squashfs-combined-efi.img.gz; do
             ls
@@ -212,7 +211,7 @@ jobs:
         continue-on-error: true
         run: |
           tree -a
-          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-efi.{qcow2,img.gz} ${{ github.workspace }}
+          cp ${{ github.workspace }}/bin/targets/armsr/armv8/-squashfs-combined-efi.* ${{ github.workspace }}
           ls -l ${{ github.workspace }}
           
       - name: Containers To Image And Push Docker Image
