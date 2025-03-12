@@ -248,11 +248,17 @@ jobs:
         run: |
           tree -a
           cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
-          ls -l ${{ github.workspace }}
+          echo "重命名armv8文件"
+          for f in immortalwrt-*-armsr-armv8-generic-squashfs-combined-efi.*; do
+            new_name="${f/-r*-armsr/-armsr}" # 自动截断中间动态部分
+            mv -nv "$f" "$new_name"
+          done
           # 压缩qcow2文件
           gzip -k -f *-squashfs-combined-efi.qcow2
+
           # 压缩vmdk文件
           gzip -k -f *-squashfs-combined-efi.vmdk
+          ls -l ${{ github.workspace }}
 
       - name: Download and Extract RootFS
         run: |
