@@ -313,6 +313,8 @@ jobs:
           docker exec immortalwrt-arm64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
+            opkg remove firewall4 --force-removal-of-dependent-packages
+            opkg install firewall iptables
             opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
           "
 
@@ -348,6 +350,8 @@ jobs:
           docker exec immortalwrt-amd64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
+            opkg remove firewall4 --force-removal-of-dependent-packages
+            opkg install firewall iptables
             opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
           "
 
