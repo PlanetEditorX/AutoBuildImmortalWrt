@@ -346,8 +346,7 @@ jobs:
               option ipaddr '${IPADDR}'
               option netmask '255.255.255.0'
               option gateway '${GATEWAY}'
-              list dns '223.5.5.5'
-              list dns '1.1.1.1'
+              option dns '223.5.5.5 1.1.1.1'
             EOF"
           docker commit immortalwrt-arm64 immortalwrt:arm64
 
@@ -389,8 +388,7 @@ jobs:
               option ipaddr '${IPADDR}'
               option netmask '255.255.255.0'
               option gateway '${GATEWAY}'
-              list dns '223.5.5.5'
-              list dns '1.1.1.1'
+              option dns '223.5.5.5 1.1.1.1'
             EOF"
           docker commit immortalwrt-amd64 immortalwrt:amd64
 
