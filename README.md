@@ -1,6 +1,6 @@
 # AutoBuildImmortalWrt
-[![GitHub](https://img.shields.io/github/license/wukongdaily/AutoBuildImmortalWrt.svg?label=LICENSE&logo=github&logoColor=%20)](https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/main/LICENSE)
-[![Github](https://img.shields.io/badge/RELEASE:AutoBuildImmortalWrt-123456?logo=github&logoColor=fff&labelColor=green&style=flat)](https://github.com/PlanetEditorX/AutoBuildImmortalWrt/releases)
+[![GitHub](https://img.shields.io/github/license/PlanetEditorX/AutoBuildImmortalWrt.svg?label=LICENSE&logo=github&logoColor=%20)](https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/main/LICENSE)
+[![Github](https://img.shields.io/badge/RELEASE-%20AutoBuildImmortalWrt-123456?logo=github&logoColor=fff&labelColor=green&style=flat)](https://github.com/PlanetEditorX/AutoBuildImmortalWrt/releases)
 [![Github](https://img.shields.io/badge/Docker%20Hub-%20yexundao/immortalwrt-blue?logo=docker)](https://hub.docker.com/repository/docker/yexundao/immortalwrt/tags)
 
 ## fnOS使用
