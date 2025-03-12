@@ -28,7 +28,7 @@ on:
           - 'yes'
           - 'no'
       compile_image:
-        description: '是否编译镜像'
+        description: '是否编译虚拟镜像'
         required: true
         default: 'yes'
         type: choice
