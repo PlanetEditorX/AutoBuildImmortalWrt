@@ -101,10 +101,10 @@ jobs:
             # 为空以获取为准
             # 获取最新的 tag 提取版本号部分
             if [ $VERSION_SOURCE == "GitHub" ]; then
-              echo "从当前仓库中获取版本号"
+              echo "从仓库中获取版本号"
               version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
             else
-              echo "从当前Docker Hub中获取版本号"
+              echo "从Docker Hub中获取版本号"
               version=${{ env.docker_tag }}
             fi
 
