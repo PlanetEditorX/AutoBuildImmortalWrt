@@ -19,7 +19,7 @@
 ---
 # docker如何使用immortalwrt
 ## 一、设置网络
-### 1.查看网卡名称，常为eth0
+### 1.查看网卡名称，一般为eth0
   ```bash
   ip link show
   ```
@@ -33,7 +33,7 @@
   ```
   - `--subnet`：指定容器使用的子网
   - `--gateway`：容器默认网关
-  - `-o parent`：指定物理父接口，一般为`eth0`，如不是，通过命令`ip addr`查找网口名字
+  - `-o parent`：指定物理父接口
 ### 3. 打印docker中的macvlan网络是否创建成功
   ```bash
   docker network ls
@@ -100,9 +100,9 @@ opkg install luci-i18n-nikki-zh-cn
 https://mirrors.sjtug.sjtu.edu.cn/immortalwrt/releases/23.05.4/packages/aarch64_cortex-a53/luci/ <br>
 https://mirrors.sjtug.sjtu.edu.cn/immortalwrt/releases/23.05.4/packages/x86_64/luci/
 ---
-## ❤️其它GitHub Action项目推荐🌟 （建议收藏）⬇️
+## ❤️其它GitHub Action项目推荐🌟 
 https://github.com/wukongdaily/RunFilesBuilder<br>
 https://github.com/wukongdaily/DockerTarBuilder
 ---
-## ❤️如何构建docker版ImmortalWrt（建议收藏）⬇️
+## ❤️如何构建docker版ImmortalWrt
 https://wkdaily.cpolar.top/15
