@@ -249,6 +249,10 @@ jobs:
           tree -a
           cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
           ls -l ${{ github.workspace }}
+          # 压缩qcow2文件
+          gzip -k -f *-squashfs-combined-efi.qcow2
+          # 压缩vmdk文件
+          gzip -k -f *-squashfs-combined-efi.vmdk
 
       - name: Download and Extract RootFS
         run: |
@@ -382,13 +386,6 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:latest
           docker ps -a
 
-      - name: Generate Firmware SHA-256
-        run: |
-          for file in *squashfs-combined-efi.*gz; do
-            sha256sum "$file" > "$file.sha256"
-            sha256sum -c "$file.sha256"
-          done
-
       - name: Create info
         run: |
           if [ $INCLUDE_DOCKER == "yes" ]; then
@@ -418,7 +415,6 @@ jobs:
           body_path: ${{ github.workspace }}/info.md
           files: |
             ${{ github.workspace }}/*squashfs-combined-efi.*.gz
-            ${{ github.workspace }}/*.sha256
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
