@@ -83,7 +83,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Get latest Docker tag
-        if: ${{ env.VERSION_SOURCE == 'Docker' }}
+        if: ${{ env.VERSION_SOURCE == 'Docker Hub' }}
         run: |
           # 通过page=2&page_size=1限制获取最新版本号，page=1&page_size=1为latest，page=2&page_size=1为X.Y.Z-arm
           TAGS_URL="https://registry.hub.docker.com/v2/namespaces/${{ secrets.DOCKER_USERNAME }}/repositories/immortalwrt/tags?page=2&page_size=1"
