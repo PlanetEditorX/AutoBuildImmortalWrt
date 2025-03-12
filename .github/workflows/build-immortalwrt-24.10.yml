@@ -20,14 +20,25 @@ on:
         required: false
         default: '192.168.3.1'
       include_docker:
-        description: |
-          是否编译 Docker 插件
+        description: '是否编译 Docker 插件'
         required: true
         default: 'no'
         type: choice
         options:
           - 'yes'
           - 'no'
+      version_source:
+        description: '获取最新版本号方式'
+        required: true
+        default: 'GitHub'
+        type: choice
+        options:
+          - 'GitHub'
+          - 'Docker Hub'
+      version:
+        description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
+        required: false
+        default: ''
       enable_pppoe:
         description: "是否配置PPPoE拨号信息?"
         required: true
@@ -42,11 +53,6 @@ on:
       pppoe_password:
         description: "宽带密码 (若启用PPPoE)"
         required: false
-      version:
-        description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
-        required: false
-        default: ''
-
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -59,6 +65,7 @@ jobs:
       PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
       PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
       VERSION: ${{ github.event.inputs.version || '' }}
+      VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -75,6 +82,16 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Get latest Docker tag
+        if: ${{ env.VERSION_SOURCE == 'Docker' }}
+        run: |
+          # 通过page=2&page_size=1限制获取最新版本号，page=1&page_size=1为latest，page=2&page_size=1为X.Y.Z-arm
+          TAGS_URL="https://registry.hub.docker.com/v2/namespaces/${{ secrets.DOCKER_USERNAME }}/repositories/immortalwrt/tags?page=2&page_size=1"
+          TAGS_RESPONSE=$(curl -s $TAGS_URL)
+          docker_tag=$(echo $TAGS_RESPONSE | jq -r '.results[] | .name' | sort -V | tail -n1 | awk -F'-' '{print $1}')
+          # 输出X.Y.Z
+          echo "docker_tag=$docker_tag" >> $GITHUB_ENV
+
       - name: Get latest tag And Increment Version
         run: |
           # 输入不为空时以输入为准
@@ -83,7 +100,14 @@ jobs:
           else
             # 为空以获取为准
             # 获取最新的 tag 提取版本号部分
-            version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
+            if [ $VERSION_SOURCE == "GitHub" ]; then
+              echo "从当前仓库中获取版本号"
+              version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
+            else
+              echo "从当前Docker Hub中获取版本号"
+              version=${{ env.docker_tag }}
+            fi
+
             # 当前版本为空时初始化版本号
             if [[ "$version" == "null" ]]; then
               NEW_VERSION='v1.0.0'
