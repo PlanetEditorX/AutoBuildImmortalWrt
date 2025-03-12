@@ -27,6 +27,14 @@ on:
         options:
           - 'yes'
           - 'no'
+      compile_image:
+        description: '是否编译镜像'
+        required: true
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
       version_source:
         description: '获取最新版本号方式'
         required: true
@@ -66,6 +74,8 @@ jobs:
       PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
       VERSION: ${{ github.event.inputs.version || '' }}
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
+      COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -170,6 +180,7 @@ jobs:
           fi
 
       - name: Build ImmortalWrt-x86-64-efi
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         run: |
           profiles=$PROFILE
           include_docker=$INCLUDE_DOCKER
@@ -194,6 +205,7 @@ jobs:
           done
 
       - name: GET IMG for x86-64
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         continue-on-error: true
         run: |
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
@@ -205,6 +217,7 @@ jobs:
           done
 
       - name: IMG Convert QCOW2 for x86-64
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         run: |
           for file in *-x86-64-generic-squashfs-combined-efi.img; do
             # 提取文件名的前面部分(去掉 .img)
@@ -221,6 +234,7 @@ jobs:
           gzip -k -f ${base_name}.qcow2
 
       - name: Build ImmortalWrt-armsr-armv8-efi
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         run: |
           profiles=$PROFILE
           include_docker=$INCLUDE_DOCKER
@@ -244,6 +258,7 @@ jobs:
           done
 
       - name: GET IMG, QCOW2 And Vmdk for armv8
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         continue-on-error: true
         run: |
           tree -a
@@ -416,6 +431,7 @@ jobs:
 
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         with:
           tag_name: AutoBuild-ImmortalWrt-${{ env.VERSION }}
           body_path: ${{ github.workspace }}/info.md
