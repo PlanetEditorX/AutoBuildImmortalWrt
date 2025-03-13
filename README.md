@@ -117,6 +117,10 @@ opkg install luci-i18n-nikki-zh-cn
 - 插件配置中选择配置文件后启动
 
 ---
+## ImmortalWrt 软件仓库镜像使用
+https://help.mirrors.cernet.edu.cn/immortalwrt/
+
+---
 ## 如何查询都有哪些插件?
 https://mirrors.sjtug.sjtu.edu.cn/immortalwrt/releases/23.05.4/packages/aarch64_cortex-a53/luci/ <br>
 https://mirrors.sjtug.sjtu.edu.cn/immortalwrt/releases/23.05.4/packages/x86_64/luci/
