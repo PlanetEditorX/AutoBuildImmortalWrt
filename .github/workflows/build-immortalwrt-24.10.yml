@@ -390,16 +390,7 @@ jobs:
       - name: Copy Core in immortalwrt-amd64
         run: |
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
-          ls -l
-          # echo "1"
-          # gzip -d ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
-          # ls -l ${{ github.workspace }}/src/files/core/clash/
-          # echo "2"
-          # ls -l
-          # gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
-          # ls -l
-          # echo "3"
-          docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
+          docker cp clash_meta immortalwrt-amd64:/root/
 
       - name: Commit modified container in immortalwrt-amd64
         run: |
