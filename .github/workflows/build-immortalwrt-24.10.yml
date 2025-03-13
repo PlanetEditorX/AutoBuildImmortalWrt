@@ -208,6 +208,7 @@ jobs:
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
         continue-on-error: true
         run: |
+          tree -a
           cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
           for file in *squashfs-combined-efi.img.gz; do
             ls
@@ -325,7 +326,7 @@ jobs:
           docker exec immortalwrt-arm64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -378,7 +379,7 @@ jobs:
             echo "Install local ipk end"
             opkg update
             echo "Install packages ipk..."
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash luci-i18n-homeproxy-zh-cn openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn
           "
 
       - name: Commit modified container in immortalwrt-amd64
