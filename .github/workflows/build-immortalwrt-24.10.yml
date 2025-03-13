@@ -298,14 +298,8 @@ jobs:
           docker build -t immortalwrt:initial-amd64 ./src/amd64
 
       - name: Build ARM Docker image
-        id: build
-        uses: docker/build-push-action@v4
-        with:
-          context: ./src/arm64
-          file: ./src/arm64/Dockerfile
-          platforms: linux/arm64
-          tags: immortalwrt:initial-arm64
-          push: false  # 不推送镜像
+        run: |
+          docker buildx build --platform linux/arm64 -t immortalwrt:initial-arm64 --load ./src/arm64
 
       - name: Ensure Docker image exists
         run: |
