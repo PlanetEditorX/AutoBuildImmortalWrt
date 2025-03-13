@@ -47,20 +47,20 @@ on:
         description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
         required: false
         default: ''
-      enable_pppoe:
-        description: "是否配置PPPoE拨号信息?"
-        required: true
-        default: 'no'
-        type: choice
-        options:
-        - 'yes'
-        - 'no'
-      pppoe_account:
-        description: "宽带账号 (若启用PPPoE)"
-        required: false
-      pppoe_password:
-        description: "宽带密码 (若启用PPPoE)"
-        required: false
+      # enable_pppoe:
+      #   description: "是否配置PPPoE拨号信息?"
+      #   required: true
+      #   default: 'no'
+      #   type: choice
+      #   options:
+      #   - 'yes'
+      #   - 'no'
+      # pppoe_account:
+      #   description: "宽带账号 (若启用PPPoE)"
+      #   required: false
+      # pppoe_password:
+      #   description: "宽带密码 (若启用PPPoE)"
+      #   required: false
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -69,12 +69,12 @@ jobs:
       IPADDR: ${{ github.event.inputs.ipaddr || '192.168.3.100' }}
       GATEWAY: ${{ github.event.inputs.gateway || '192.168.3.1' }}
       INCLUDE_DOCKER: ${{ github.event.inputs.include_docker || 'no' }}
-      ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
-      PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
-      PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
       VERSION: ${{ github.event.inputs.version || '' }}
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
       COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
+      # ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
+      # PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
+      # PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
 
     steps:
       - name: Checkout code
