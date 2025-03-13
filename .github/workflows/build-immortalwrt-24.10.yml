@@ -314,55 +314,55 @@ jobs:
       - name: List local Docker images
         run: docker images
 
-      - name: Run container in immortalwrt-arm64
-        run: |
-          docker run -d \
-            --name immortalwrt-arm64 \
-            --platform linux/arm64 \
-            --privileged \
-            immortalwrt:initial-arm64 \
-            /bin/sh -c "while true; do sleep 1000; done"
+      # - name: Run container in immortalwrt-arm64
+      #   run: |
+      #     docker run -d \
+      #       --name immortalwrt-arm64 \
+      #       --platform linux/arm64 \
+      #       --privileged \
+      #       immortalwrt:initial-arm64 \
+      #       /bin/sh -c "while true; do sleep 1000; done"
 
-          docker exec immortalwrt-arm64 sh -c "
-            mkdir -p /tmp/log /var/lock
-            opkg update
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
-          "
+      #     docker exec immortalwrt-arm64 sh -c "
+      #       mkdir -p /tmp/log /var/lock
+      #       opkg update
+      #       opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+      #     "
 
-      - name: Copy Core in immortalwrt-arm64
-        run: |
-          gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-arm64-*.gz > clash_meta
-          docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
+      # - name: Copy Core in immortalwrt-arm64
+      #   run: |
+      #     gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-arm64-*.gz > clash_meta
+      #     docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
 
-      - name: Commit modified container in immortalwrt-arm64
-        run: |
-          docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
-            config interface 'loopback'
-                    option device 'lo'
-                    option proto 'static'
-                    option ipaddr '127.0.0.1'
-                    option netmask '255.0.0.0'
+      # - name: Commit modified container in immortalwrt-arm64
+      #   run: |
+      #     docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
+      #       config interface 'loopback'
+      #               option device 'lo'
+      #               option proto 'static'
+      #               option ipaddr '127.0.0.1'
+      #               option netmask '255.0.0.0'
 
-            config globals 'globals'
-                    option ula_prefix 'fd28:5d8d:7180::/48'
-                    option packet_steering '1'
+      #       config globals 'globals'
+      #               option ula_prefix 'fd28:5d8d:7180::/48'
+      #               option packet_steering '1'
 
-            config device
-                    option name 'br-lan'
-                    option type 'bridge'
-                    list ports 'eth0'
+      #       config device
+      #               option name 'br-lan'
+      #               option type 'bridge'
+      #               list ports 'eth0'
 
-            config interface 'lan'
-                    option device 'br-lan'
-                    option proto 'static'
-                    option ipaddr '${IPADDR}'
-                    option netmask '255.255.255.0'
-                    option gateway '${GATEWAY}'
-                    option delegate '0'
-            EOF"
-          docker restart immortalwrt-arm64
-          sleep 10s
-          docker commit immortalwrt-arm64 immortalwrt:arm64
+      #       config interface 'lan'
+      #               option device 'br-lan'
+      #               option proto 'static'
+      #               option ipaddr '${IPADDR}'
+      #               option netmask '255.255.255.0'
+      #               option gateway '${GATEWAY}'
+      #               option delegate '0'
+      #       EOF"
+      #     docker restart immortalwrt-arm64
+      #     sleep 10s
+      #     docker commit immortalwrt-arm64 immortalwrt:arm64
 
       - name: Run container in immortalwrt-amd64
         continue-on-error: true
@@ -389,8 +389,13 @@ jobs:
 
       - name: Copy Core in immortalwrt-amd64
         run: |
-          ls -l ${{ github.workspace }}/src/files/core/clash/
+          echo "list"
+          ls -l ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz
+          echo "1"
+          gzip -d ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz
+          echo "2"
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
+          echo "3"
           docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
 
       - name: Commit modified container in immortalwrt-amd64
