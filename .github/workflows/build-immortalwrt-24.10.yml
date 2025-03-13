@@ -280,8 +280,10 @@ jobs:
         run: |
           mkdir -p immortalwrt
           cd immortalwrt
-          wget -O rootfs_amd64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/x86/64/immortalwrt-24.10.0-rc4-x86-64-rootfs.tar.gz
-          wget -O rootfs_arm64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/armsr/armv8/immortalwrt-24.10.0-rc4-armsr-armv8-rootfs.tar.gz
+          # wget -O rootfs_amd64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/x86/64/immortalwrt-24.10.0-rc4-x86-64-rootfs.tar.gz
+          # wget -O rootfs_arm64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/armsr/armv8/immortalwrt-24.10.0-rc4-armsr-armv8-rootfs.tar.gz
+          wget -O rootfs_amd64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.0/targets/x86/64/immortalwrt-24.10.0-x86-64-rootfs.tar.gz
+          wget -O rootfs_arm64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.0/targets/armsr/armv8/immortalwrt-24.10.0-armsr-armv8-rootfs.tar.gz
           gzip -d rootfs_amd64.tar.gz
           gzip -d rootfs_arm64.tar.gz
 
