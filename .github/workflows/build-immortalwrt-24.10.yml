@@ -331,8 +331,9 @@ jobs:
 
       - name: Copy Core in immortalwrt-arm64
         run: |
-          ls -l ${{ github.workspace }}
-          ls -l ${{ github.workspace }}/src
+          ls -l ${{ github.workspace }}/src/files
+          ls -l ${{ github.workspace }}/src/files/core
+          ls -l ${{ github.workspace }}/src/files/core/linux-arm64-v*.gz
           gzip -dc ${{ github.workspace }}/src/files/core/linux-arm64-v*.gz > clash_meta
           docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
 
