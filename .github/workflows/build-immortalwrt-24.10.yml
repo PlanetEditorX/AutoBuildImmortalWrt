@@ -115,7 +115,7 @@ jobs:
               version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^Autobuild-x86-64-//')
             else
               echo "从Docker Hub中获取版本号"
-              version=${{ env.docker_tag }}
+              version=$docker_tag
             fi
 
             # 当前版本为空时初始化版本号
