@@ -371,26 +371,19 @@ jobs:
             --name immortalwrt-amd64 \
             --platform linux/amd64 \
             --privileged \
-            -v "${{ github.workspace }}/src/files/ipk/24.10.0-rc4/x86_64:/tmp/ipk" \
             immortalwrt:initial-amd64 \
             /bin/sh -c "while true; do sleep 1000; done"
 
           docker exec immortalwrt-amd64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
-            echo "Install local ipk..."
-            opkg install /tmp/ipk/*.ipk --force-depends
-            rm -rf /tmp/ipk
-            echo "Install local ipk end"
-            opkg update
-            echo "Install packages ipk..."
             opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-i18n-passwall-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
           "
 
       - name: Copy Core in immortalwrt-amd64
         run: |
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
-          docker cp clash_meta immortalwrt-amd64:/root/
+          docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
 
       - name: Commit modified container in immortalwrt-amd64
         run: |
