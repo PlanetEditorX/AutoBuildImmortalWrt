@@ -332,19 +332,30 @@ jobs:
         run: |
           docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
             config interface 'loopback'
-              option device 'lo'
-              option proto 'static'
-              option ipaddr '127.0.0.1'
-              option netmask '255.0.0.0'
+                    option device 'lo'
+                    option proto 'static'
+                    option ipaddr '127.0.0.1'
+                    option netmask '255.0.0.0'
+
+            config globals 'globals'
+                    option ula_prefix 'fd28:5d8d:7180::/48'
+                    option packet_steering '1'
+
+            config device
+                    option name 'br-lan'
+                    option type 'bridge'
+                    list ports 'eth0'
 
             config interface 'lan'
-              option proto 'static'
-              option device 'eth0'
-              option ipaddr '${IPADDR}'
-              option netmask '255.255.255.0'
-              option gateway '${GATEWAY}'
-              option dns '223.5.5.5 1.1.1.1'
+                    option device 'br-lan'
+                    option proto 'static'
+                    option ipaddr '${IPADDR}'
+                    option netmask '255.255.255.0'
+                    option gateway '${GATEWAY}'
+                    option delegate '0'
             EOF"
+          docker restart immortalwrt-arm64
+          sleep 10s
           docker commit immortalwrt-arm64 immortalwrt:arm64
 
       - name: Run container in immortalwrt-amd64
@@ -374,19 +385,30 @@ jobs:
         run: |
           docker exec immortalwrt-amd64 sh -c "cat <<EOF > /etc/config/network
             config interface 'loopback'
-              option device 'lo'
-              option proto 'static'
-              option ipaddr '127.0.0.1'
-              option netmask '255.0.0.0'
+                    option device 'lo'
+                    option proto 'static'
+                    option ipaddr '127.0.0.1'
+                    option netmask '255.0.0.0'
+
+            config globals 'globals'
+                    option ula_prefix 'fd28:5d8d:7180::/48'
+                    option packet_steering '1'
+
+            config device
+                    option name 'br-lan'
+                    option type 'bridge'
+                    list ports 'eth0'
 
             config interface 'lan'
-              option proto 'static'
-              option device 'eth0'
-              option ipaddr '${IPADDR}'
-              option netmask '255.255.255.0'
-              option gateway '${GATEWAY}'
-              option dns '223.5.5.5 1.1.1.1'
+                    option device 'br-lan'
+                    option proto 'static'
+                    option ipaddr '${IPADDR}'
+                    option netmask '255.255.255.0'
+                    option gateway '${GATEWAY}'
+                    option delegate '0'
             EOF"
+          docker restart immortalwrt-amd64
+          sleep 10s
           docker commit immortalwrt-amd64 immortalwrt:amd64
 
       - name: Containers To Image And Push Docker Image
