@@ -390,7 +390,9 @@ jobs:
       - name: Copy Core in immortalwrt-amd64
         run: |
           ls -l ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz
-          gzip -d ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz
+          echo "1"
+          gzip -d ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
+          ls -l ${{ github.workspace }}/src/files/core/clash/
           echo "2"
           ls -l
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
