@@ -331,7 +331,7 @@ jobs:
 
       - name: Copy Core in immortalwrt-arm64
         run: |
-          gzip -dc ./src/files/core/linux-arm64-v*.gz > clash_meta
+          gzip -dc ${{ github.workspace }}/src/files/core/linux-arm64-v*.gz > clash_meta
           docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
 
       - name: Commit modified container in immortalwrt-arm64
@@ -389,7 +389,7 @@ jobs:
 
       - name: Copy Core in immortalwrt-amd64
         run: |
-          gzip -dc ./src/files/core/linux-amd64-v*.gz > clash_meta
+          gzip -dc ${{ github.workspace }}/src/files/core/linux-amd64-v*.gz > clash_meta
           docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
 
       - name: Commit modified container in immortalwrt-amd64
