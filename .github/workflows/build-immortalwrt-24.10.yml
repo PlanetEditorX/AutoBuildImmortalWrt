@@ -308,7 +308,8 @@ jobs:
             head -n 5 /etc/hosts > /tmp/hosts.new
             cat /tmp/hosts_content >> /tmp/hosts.new
             tail -n +6 /etc/hosts >> /tmp/hosts.new
-            mv /tmp/hosts.new /etc/hosts
+            cp /tmp/hosts.new /etc/hosts
+            rm /tmp/hosts.new
           "
 
       - name: Remove Unuse Software in immortalwrt-arm64
@@ -412,7 +413,8 @@ jobs:
             head -n 5 /etc/hosts > /tmp/hosts.new
             cat /tmp/hosts_content >> /tmp/hosts.new
             tail -n +6 /etc/hosts >> /tmp/hosts.new
-            mv /tmp/hosts.new /etc/hosts
+            cp /tmp/hosts.new /etc/hosts
+            rm /tmp/hosts.new
           "
 
       - name: Commit modified container in immortalwrt-amd64
