@@ -122,6 +122,15 @@ opkg install luci-i18n-nikki-zh-cn
 https://github.com/PlanetEditorX/subconverter/raw/refs/heads/master/base/config/ACL4SSR_Online_Full_AdblockPlus.ini
 
 ---
+## shellclash
+- 手动下载config.yaml文件并上传到/tmp
+- 复制clash_meta
+  ```bash
+  cp /etc/openclash/core/clash_meta /tmp/clash_meta
+  ```
+- crash启动
+
+---
 ## ImmortalWrt 软件仓库镜像使用
 https://help.mirrors.cernet.edu.cn/immortalwrt/
 
