@@ -296,7 +296,19 @@ jobs:
           docker exec immortalwrt-arm64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+            opkg install curl
+            # luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+          "
+
+      - name: Add hosts in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            curl -s https://github-hosts.tinsfox.com/hosts > /tmp/hosts_content
+            head -n 5 /etc/hosts > /tmp/hosts.new
+            cat /tmp/hosts_content >> /tmp/hosts.new
+            tail -n +6 /etc/hosts >> /tmp/hosts.new
+            mv /tmp/hosts.new /etc/hosts
           "
 
       - name: Remove Unuse Software in immortalwrt-arm64
@@ -323,16 +335,7 @@ jobs:
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
 
-      - name: Add hosts in immortalwrt-arm64
-        continue-on-error: true
-        run: |
-          docker exec immortalwrt-arm64 sh -c "
-            curl -s https://github-hosts.tinsfox.com/hosts > /tmp/hosts_content
-            head -n 5 /etc/hosts > /tmp/hosts.new
-            cat /tmp/hosts_content >> /tmp/hosts.new
-            tail -n +6 /etc/hosts >> /tmp/hosts.new
-            mv /tmp/hosts.new /etc/hosts
-          "
+
 
       - name: Commit modified container in immortalwrt-arm64
         run: |
