@@ -328,7 +328,7 @@ jobs:
         run: |
           docker exec immortalwrt-arm64 sh -c "
             # from https://github.com/TinsFox/github-hosts
-            wget -c https://github-hosts.tinsfox.com/hosts -O github-hosts && cat github-hosts >> /etc/hosts && rm github-hosts
+            curl -fsSL https://github-hosts.tinsfox.com/hosts -o github-hosts && sed -i "6r github-hosts" /etc/hosts
             cat /etc/hosts
           "
 
@@ -402,7 +402,7 @@ jobs:
         continue-on-error: true
         run: |
           docker exec immortalwrt-amd64 sh -c "
-            wget -c https://github-hosts.tinsfox.com/hosts -O github-hosts && cat github-hosts >> /etc/hosts && rm github-hosts
+            curl -fsSL https://github-hosts.tinsfox.com/hosts -o github-hosts && sed -i "6r github-hosts" /etc/hosts && rm github-hosts
             cat /etc/hosts
           "
 
