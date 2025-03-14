@@ -298,6 +298,7 @@ jobs:
             opkg update
             opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
           "
+
       - name: Install Remove Unuse Software in immortalwrt-arm64
         continue-on-error: true
         run: |
@@ -320,6 +321,14 @@ jobs:
             opkg install luci-i18n-nikki-zh-cn
             # 写入云端配置
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
+          "
+
+      - name: Add hosts in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            # from https://github.com/TinsFox/github-hosts
+            curl -fsSL https://github-hosts.tinsfox.com/hosts -o github-hosts && cat github-hosts >> /etc/hosts && rm github-hosts
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -386,6 +395,13 @@ jobs:
             opkg install luci-i18n-nikki-zh-cn
             # 写入云端配置
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
+          "
+
+      - name: Add hosts in immortalwrt-amd64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            curl -fsSL https://github-hosts.tinsfox.com/hosts -o github-hosts && cat github-hosts >> /etc/hosts && rm github-hosts
           "
 
       - name: Commit modified container in immortalwrt-amd64
