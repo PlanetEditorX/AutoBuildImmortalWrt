@@ -112,6 +112,7 @@ opkg install luci-i18n-nikki-zh-cn
 - 使用hfs传递文件：```curl http://192.168.3.x/nikki > nikki```
 - 或通过其它方式传递nikki文件
 - 替换`/etc/config/nikki`
+- 到`网络`→`DHCP/DNS`→`常规`中关闭`DNS重定向`，避免`nikki`和`Dnsmasq`重复DNS劫持
 
 ### 4.配置文件中添加订阅并更新
 - 插件配置中选择配置文件后启动
