@@ -108,7 +108,7 @@ opkg install luci-i18n-nikki-zh-cn
 ```
 
 ### 3.替换配置文件(可选)
-- 下载：```[https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/master/src/nikki](https://github.com/PlanetEditorX/AutoBuildImmortalWrt/blob/main/src/nikki)```
+- 下载：[```https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/nikki```](https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki)
 - 使用hfs传递文件：```curl http://192.168.3.x/nikki > nikki```
 - 或通过其它方式传递nikki文件
 - 替换`/etc/config/nikki`
