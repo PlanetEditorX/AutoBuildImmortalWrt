@@ -284,7 +284,7 @@ jobs:
       - name: List local Docker images
         run: docker images
 
-      - name: Run container in immortalwrt-arm64
+      - name: Run container and install Software in immortalwrt-arm64
         run: |
           docker run -d \
             --name immortalwrt-arm64 \
@@ -303,6 +303,16 @@ jobs:
         run: |
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-arm64-*.gz > clash_meta
           docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
+
+      - name: Install OpenWrt-nikki in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+            opkg install nikki
+            opkg install luci-app-nikki
+            opkg install luci-i18n-nikki-zh-cn
+          "
 
       - name: Commit modified container in immortalwrt-arm64
         run: |
@@ -334,7 +344,7 @@ jobs:
           sleep 10s
           docker commit immortalwrt-arm64 immortalwrt:arm64
 
-      - name: Run container in immortalwrt-amd64
+      - name: Run container and install Software in immortalwrt-amd64
         continue-on-error: true
         run: |
           docker run -d \
@@ -354,6 +364,16 @@ jobs:
         run: |
           gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
           docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
+
+      - name: Install OpenWrt-nikki in immortalwrt-amd64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+            opkg install nikki
+            opkg install luci-app-nikki
+            opkg install luci-i18n-nikki-zh-cn
+          "
 
       - name: Commit modified container in immortalwrt-amd64
         run: |
