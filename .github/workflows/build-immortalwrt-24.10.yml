@@ -328,7 +328,7 @@ jobs:
         run: |
           docker exec immortalwrt-arm64 sh -c "
             # from https://github.com/TinsFox/github-hosts
-            curl -s https://github-hosts.tinsfox.com/hosts | sudo sed -i '6r /dev/stdin' /etc/hosts
+            curl -s https://github-hosts.tinsfox.com/hosts | sed -i '6r /dev/stdin' /etc/hosts
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -402,7 +402,7 @@ jobs:
         run: |
           docker exec immortalwrt-amd64 sh -c "
             # from https://github.com/TinsFox/github-hosts
-            curl -s https://github-hosts.tinsfox.com/hosts | sudo sed -i '6r /dev/stdin' /etc/hosts
+            curl -s https://github-hosts.tinsfox.com/hosts | sed -i '6r /dev/stdin' /etc/hosts
           "
 
       - name: Commit modified container in immortalwrt-amd64
