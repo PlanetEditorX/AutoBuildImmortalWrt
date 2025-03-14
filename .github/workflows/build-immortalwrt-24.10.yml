@@ -323,13 +323,14 @@ jobs:
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
 
-      - name: Add hosts in immortalwrt-arm64
+      - name: Install ShellCrash in immortalwrt-arm64
         continue-on-error: true
         run: |
           docker exec immortalwrt-arm64 sh -c "
-            # From https://github.com/TinsFox/github-hosts
-            wget -c https://github-hosts.tinsfox.com/hosts -O /etc/custom_hosts
-            echo "addn-hosts=/etc/custom_hosts" > /etc/dnsmasq.conf
+            # 写入云端配置
+            wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
+            chmod +x /tmp/shellclash.sh
+            sh /tmp/shellclash.sh
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -398,13 +399,14 @@ jobs:
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
 
-      - name: Add hosts in immortalwrt-amd64
+      - name: Install ShellCrash in immortalwrt-amd64
         continue-on-error: true
         run: |
           docker exec immortalwrt-amd64 sh -c "
-            # From https://github.com/TinsFox/github-hosts
-            wget -c https://github-hosts.tinsfox.com/hosts -O /etc/custom_hosts
-            echo "addn-hosts=/etc/custom_hosts" > /etc/dnsmasq.conf
+            # 写入云端配置
+            wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
+            chmod +x /tmp/shellclash.sh
+            sh /tmp/shellclash.sh
           "
 
       - name: Commit modified container in immortalwrt-amd64
