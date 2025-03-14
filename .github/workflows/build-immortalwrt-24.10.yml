@@ -328,7 +328,7 @@ jobs:
         run: |
           docker exec immortalwrt-arm64 sh -c "
             # From https://github.com/TinsFox/github-hosts
-            wget -c https://github-hosts.tinsfox.com/hosts -o /etc/custom_hosts
+            wget -c https://github-hosts.tinsfox.com/hosts -O /etc/custom_hosts
             echo "addn-hosts=/etc/custom_hosts" > /etc/dnsmasq.conf
           "
 
@@ -403,7 +403,7 @@ jobs:
         run: |
           docker exec immortalwrt-amd64 sh -c "
             # From https://github.com/TinsFox/github-hosts
-            wget -c https://github-hosts.tinsfox.com/hosts -o /etc/custom_hosts
+            wget -c https://github-hosts.tinsfox.com/hosts -O /etc/custom_hosts
             echo "addn-hosts=/etc/custom_hosts" > /etc/dnsmasq.conf
           "
 
