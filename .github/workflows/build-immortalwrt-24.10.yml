@@ -328,11 +328,17 @@ jobs:
         run: |
           docker exec immortalwrt-arm64 sh -c "
             # from https://github.com/TinsFox/github-hosts
-            mkdir github
-            wget -c https://github-hosts.tinsfox.com/hosts -O ./github/hosts
-            cat ./github/hosts
-            sed -i "6r ./github/hosts" /etc/hosts && rm github-hosts
-            cat /etc/hosts
+            hosts_content=$(curl -s https://github-hosts.tinsfox.com/hosts)
+            # 使用临时文件来存储修改后的 /etc/hosts 内容
+            temp_file=$(mktemp)
+            # 将 /etc/hosts 文件的前 5 行写入临时文件
+            head -n 5 /etc/hosts > "$temp_file"
+            # 将获取的内容添加到临时文件中
+            echo "$hosts_content" >> "$temp_file"
+            # 将 /etc/hosts 文件的剩余内容（从第 6 行开始）添加到临时文件中
+            tail -n +6 /etc/hosts >> "$temp_file"
+            # 替换 /etc/hosts 文件为修改后的临时文件
+            sudo mv "$temp_file" /etc/hosts
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -405,8 +411,18 @@ jobs:
         continue-on-error: true
         run: |
           docker exec immortalwrt-amd64 sh -c "
-            wget -c https://github-hosts.tinsfox.com/hosts -O github-hosts && sed -i "6r github-hosts" /etc/hosts && rm github-hosts
-            cat /etc/hosts
+            # from https://github.com/TinsFox/github-hosts
+            hosts_content=$(curl -s https://github-hosts.tinsfox.com/hosts)
+            # 使用临时文件来存储修改后的 /etc/hosts 内容
+            temp_file=$(mktemp)
+            # 将 /etc/hosts 文件的前 5 行写入临时文件
+            head -n 5 /etc/hosts > "$temp_file"
+            # 将获取的内容添加到临时文件中
+            echo "$hosts_content" >> "$temp_file"
+            # 将 /etc/hosts 文件的剩余内容（从第 6 行开始）添加到临时文件中
+            tail -n +6 /etc/hosts >> "$temp_file"
+            # 替换 /etc/hosts 文件为修改后的临时文件
+            sudo mv "$temp_file" /etc/hosts
           "
 
       - name: Commit modified container in immortalwrt-amd64
