@@ -118,6 +118,10 @@ opkg install luci-i18n-nikki-zh-cn
 - 插件配置中选择配置文件后启动
 
 ---
+## clash 模板
+https://github.com/PlanetEditorX/subconverter/raw/refs/heads/master/base/config/ACL4SSR_Online_Full_AdblockPlus.ini
+
+---
 ## ImmortalWrt 软件仓库镜像使用
 https://help.mirrors.cernet.edu.cn/immortalwrt/
 
