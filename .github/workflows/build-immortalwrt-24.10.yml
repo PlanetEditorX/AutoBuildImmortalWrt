@@ -329,18 +329,14 @@ jobs:
                   option ula_prefix 'fd28:5d8d:7180::/48'
                   option packet_steering '1'
 
-          config device
-                  option name 'br-lan'
-                  option type 'bridge'
-                  list ports 'eth0'
-
           config interface 'lan'
-                  option device 'br-lan'
+                  option device 'eth0'
                   option proto 'static'
                   option ipaddr '${IPADDR}'
                   option netmask '255.255.255.0'
                   option gateway '${GATEWAY}'
                   option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
           EOF"
           docker restart immortalwrt-arm64
           sleep 10s
@@ -392,18 +388,14 @@ jobs:
                   option ula_prefix 'fd28:5d8d:7180::/48'
                   option packet_steering '1'
 
-          config device
-                  option name 'br-lan'
-                  option type 'bridge'
-                  list ports 'eth0'
-
           config interface 'lan'
-                  option device 'br-lan'
+                  option device 'eth0'
                   option proto 'static'
                   option ipaddr '${IPADDR}'
                   option netmask '255.255.255.0'
                   option gateway '${GATEWAY}'
                   option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
           EOF"
           docker restart immortalwrt-amd64
           sleep 10s
