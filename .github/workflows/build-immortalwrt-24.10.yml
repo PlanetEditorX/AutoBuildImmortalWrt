@@ -47,20 +47,7 @@ on:
         description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
         required: false
         default: ''
-      # enable_pppoe:
-      #   description: "是否配置PPPoE拨号信息?"
-      #   required: true
-      #   default: 'no'
-      #   type: choice
-      #   options:
-      #   - 'yes'
-      #   - 'no'
-      # pppoe_account:
-      #   description: "宽带账号 (若启用PPPoE)"
-      #   required: false
-      # pppoe_password:
-      #   description: "宽带密码 (若启用PPPoE)"
-      #   required: false
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -72,9 +59,6 @@ jobs:
       VERSION: ${{ github.event.inputs.version || '' }}
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
       COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
-      # ENABLE_PPPOE: ${{ github.event.inputs.enable_pppoe || 'no' }}
-      # PPPOE_ACCOUNT: ${{ github.event.inputs.pppoe_account || '' }}
-      # PPPOE_PASSWORD: ${{ github.event.inputs.pppoe_password || '' }}
 
     steps:
       - name: Checkout code
@@ -170,15 +154,6 @@ jobs:
           sed -i "s/custom_gateway=\"\"/custom_gateway=\"$GATEWAY\"/g" ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
           cat ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
 
-      - name: Validate PPPoE Inputs
-        run: |
-          if [[ $ENABLE_PPPOE == "yes" ]]; then
-            if [[ -z $PPPOE_ACCOUNT || -z $PPPOE_PASSWORD ]]; then
-              echo "Error: PPPoE account and password must be provided when PPPoE is enabled!"
-              exit 1
-            fi
-          fi
-
       - name: Build ImmortalWrt-x86-64-efi
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
         run: |
@@ -197,9 +172,6 @@ jobs:
               -v "${{ github.workspace }}/src/24.10/build.sh:/home/build/immortalwrt/build.sh" \
               -e PROFILE=$profile \
               -e INCLUDE_DOCKER=$include_docker \
-              -e ENABLE_PPPOE=$ENABLE_PPPOE \
-              -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
-              -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
               immortalwrt/imagebuilder:x86-64-openwrt-24.10 \
               /bin/bash /home/build/immortalwrt/build.sh
           done
@@ -252,9 +224,6 @@ jobs:
               -v "${{ github.workspace }}/src/24.10/build.sh:/home/build/immortalwrt/build.sh" \
               -e PROFILE=$profile \
               -e INCLUDE_DOCKER=$include_docker \
-              -e ENABLE_PPPOE=$ENABLE_PPPOE \
-              -e PPPOE_ACCOUNT=$PPPOE_ACCOUNT \
-              -e PPPOE_PASSWORD=$PPPOE_PASSWORD \
               immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 \
               /bin/bash /home/build/immortalwrt/build.sh
           done
