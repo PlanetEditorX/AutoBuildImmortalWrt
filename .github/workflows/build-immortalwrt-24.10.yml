@@ -313,7 +313,7 @@ jobs:
             opkg install luci-app-nikki
             opkg install luci-i18n-nikki-zh-cn
             # 写入云端配置
-            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/nikki
+            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -376,7 +376,7 @@ jobs:
             opkg install luci-app-nikki
             opkg install luci-i18n-nikki-zh-cn
             # 写入云端配置
-            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/nikki
+            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
 
       - name: Commit modified container in immortalwrt-amd64
