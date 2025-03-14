@@ -185,8 +185,9 @@ jobs:
           for file in *squashfs-combined-efi.img.gz; do
             ls
             echo "Gunzip $file"
-            # 解压
-            gunzip -k $file
+            output_img="${file%.gz}"  # 移除 .gz 后缀
+            echo "解压文件: $file → $output_img"
+            gzip -dc $file > $output_img  # 强制解压有效部分
           done
 
       - name: IMG Convert QCOW2 for x86-64
