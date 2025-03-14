@@ -2,12 +2,11 @@
 config status 'status'
 
 config config 'config'
-	option enabled '1'
-	option profile 'subscription:subscription'
+	option enabled '0'
 	option start_delay '5'
 	option scheduled_restart '1'
 	option cron_expression '0 3 * * *'
-	option test_profile '0'
+	option test_profile '1'
 	option fast_reload '1'
 
 config proxy 'proxy'
@@ -39,13 +38,6 @@ config proxy 'proxy'
 	option bypass_china_mainland_ip '0'
 	option proxy_tcp_dport '0-65535'
 	option proxy_udp_dport '0-65535'
-
-config subscription 'subscription'
-	option name 'default'
-	option url 'http://example.com/default.yaml'
-	option user_agent 'clash'
-	option prefer 'remote'
-	option success '0'
 
 config mixin 'mixin'
 	option log_level 'warning'
