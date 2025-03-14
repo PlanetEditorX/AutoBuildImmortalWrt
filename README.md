@@ -122,6 +122,11 @@ opkg install luci-i18n-nikki-zh-cn
 https://github.com/PlanetEditorX/subconverter/raw/refs/heads/master/base/config/ACL4SSR_Online_Full_AdblockPlus.ini
 
 ---
+## OpenClash-设置方案
+https://github.com/Aethersailor/Custom_OpenClash_Rules/wiki/OpenClash-%E8%AE%BE%E7%BD%AE%E6%96%B9%E6%A1%88
+
+
+---
 ## shellclash
 - 手动下载config.yaml文件并上传到/tmp
 - 复制clash_meta
