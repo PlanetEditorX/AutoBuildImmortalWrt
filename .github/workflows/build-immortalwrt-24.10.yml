@@ -353,6 +353,14 @@ jobs:
             sh /tmp/shellclash.sh
           "
 
+      - name: Use Custom DHCP in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            # 关闭 DNS 重定向
+            wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+          "
+
       - name: Commit modified container in immortalwrt-arm64
         run: |
           docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
@@ -429,6 +437,14 @@ jobs:
             wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
             chmod +x /tmp/shellclash.sh
             sh /tmp/shellclash.sh
+          "
+
+      - name: Use Custom DHCP in immortalwrt-amd64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            # 关闭 DNS 重定向
+            wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
           "
 
       - name: Commit modified container in immortalwrt-amd64
