@@ -370,6 +370,8 @@ jobs:
           docker exec immortalwrt-arm64 sh -c "
             # 关闭 DNS 重定向
             wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+            # openclash 配置
+            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/openclash
           "
 
       - name: Commit modified container in immortalwrt-arm64
@@ -457,6 +459,8 @@ jobs:
           docker exec immortalwrt-amd64 sh -c "
             # 关闭 DNS 重定向
             wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+            # openclash 配置
+            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/openclash
           "
 
       - name: Commit modified container in immortalwrt-amd64
