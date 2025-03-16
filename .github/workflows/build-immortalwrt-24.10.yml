@@ -364,7 +364,7 @@ jobs:
             sh /tmp/shellclash.sh
           "
 
-      - name: Use Custom DHCP in immortalwrt-arm64
+      - name: Use Custom /etc/config in immortalwrt-arm64
         continue-on-error: true
         run: |
           docker exec immortalwrt-arm64 sh -c "
@@ -453,7 +453,7 @@ jobs:
             sh /tmp/shellclash.sh
           "
 
-      - name: Use Custom DHCP in immortalwrt-amd64
+      - name: Use Custom /etc/config in immortalwrt-amd64
         continue-on-error: true
         run: |
           docker exec immortalwrt-amd64 sh -c "
