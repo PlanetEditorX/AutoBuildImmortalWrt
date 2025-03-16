@@ -414,7 +414,7 @@ jobs:
           # 获取OpenClash配置
           docker exec immortalwrt-amd64 sh -c "
             mkdir -p /etc/openclash
-            wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/x86-64/OpenClash-x86_64.targz tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
+            wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/x86-64/OpenClash-x86_64.tar.gz tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
           "
 
       - name: Install Software in immortalwrt-amd64
