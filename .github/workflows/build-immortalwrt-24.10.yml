@@ -55,6 +55,14 @@ on:
         options:
           - 'yes'
           - 'no'
+      compile_nikki:
+        description: '是否编译nikki'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
 
 jobs:
   build:
@@ -68,6 +76,7 @@ jobs:
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
       COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
       COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
+      COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
 
     steps:
       - name: Checkout code
@@ -321,6 +330,7 @@ jobs:
           docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
 
       - name: Install OpenWrt-nikki in immortalwrt-arm64
+        if: ${{ env.COMPILE_NIKKI == 'yes' }}
         continue-on-error: true
         run: |
           docker exec immortalwrt-arm64 sh -c "
@@ -398,6 +408,7 @@ jobs:
           docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
 
       - name: Install OpenWrt-nikki in immortalwrt-amd64
+        if: ${{ env.COMPILE_NIKKI == 'yes' }}
         continue-on-error: true
         run: |
           docker exec immortalwrt-amd64 sh -c "
