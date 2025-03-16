@@ -77,7 +77,7 @@
 
 ### 6.创建容器
   ```bash
-  docker run --name immortalwrt -d --network macnet --privileged --restart=always yexundao/immortalwrt:latest /sbin/init
+  docker run --name immortalwrt -d --network macnet --privileged --device=/dev/net/tun --cap-add=NET_ADMIN --restart=always yexundao/immortalwrt:latest /sbin/init
   ```
   - 默认为arm版本，启动后通过管理IP直接使用，无需后续操作
 
