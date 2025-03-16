@@ -302,7 +302,7 @@ jobs:
       - name: List local Docker images
         run: docker images
 
-      - name: Run container and install Software in immortalwrt-arm64
+      - name: Run container in immortalwrt-arm64
         run: |
           docker run -d \
             --name immortalwrt-arm64 \
@@ -311,6 +311,8 @@ jobs:
             immortalwrt:initial-arm64 \
             /bin/sh -c "while true; do sleep 1000; done"
 
+      - name: Install Software in immortalwrt-arm64
+        run: |
           docker exec immortalwrt-arm64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
@@ -387,8 +389,7 @@ jobs:
           sleep 10s
           docker commit immortalwrt-arm64 immortalwrt:arm64
 
-      - name: Run container and install Software in immortalwrt-amd64
-        continue-on-error: true
+      - name: Run container in immortalwrt-amd64
         run: |
           docker run -d \
             --name immortalwrt-amd64 \
@@ -397,6 +398,8 @@ jobs:
             immortalwrt:initial-amd64 \
             /bin/sh -c "while true; do sleep 1000; done"
 
+      - name: Install Software in immortalwrt-amd64
+        run: |
           docker exec immortalwrt-amd64 sh -c "
             mkdir -p /tmp/log /var/lock
             opkg update
