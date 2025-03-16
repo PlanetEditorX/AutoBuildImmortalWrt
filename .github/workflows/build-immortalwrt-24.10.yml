@@ -469,7 +469,7 @@ jobs:
             # 关闭 DNS 重定向
             wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
             # openclash 配置
-            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/etc/config/x86-64/openclash
+            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/x86-64/openclash
           "
 
       - name: Commit modified container in immortalwrt-amd64
