@@ -62,24 +62,25 @@
     ```
 
 ### 5.拉取镜像
-  - latest/arm：最新arm版本
+  - arm：最新arm版本
     ```bash
-    docker pull yexundao/immortalwrt:latest
-    ```
-    或
-    ```bash
-    docker pull yexundao/immortalwrt:arm
+    docker pull yexundao/immortalwrt-arm:latest
     ```
   - amd：最新amd版本
     ```bash
-    docker pull yexundao/immortalwrt:amd
+    docker push yexundao/immortalwrt-amd:latest
     ```
 
 ### 6.创建容器
+  - arm版本
   ```bash
-  docker run --name immortalwrt -d --network macnet --privileged --device=/dev/net/tun --cap-add=NET_ADMIN --restart=always yexundao/immortalwrt:latest /sbin/init
+  docker run --name immortalwrt -d --network macnet --privileged --device=/dev/net/tun --cap-add=NET_ADMIN --restart=unless-stopped yexundao/immortalwrt-arm:latest /sbin/init
   ```
-  - 默认为arm版本，启动后通过管理IP直接使用，无需后续操作
+  - amd版本
+  ```bash
+  docker run --name immortalwrt -d --network macnet --privileged --device=/dev/net/tun --cap-add=NET_ADMIN --restart=unless-stopped yexundao/immortalwrt-amd:latest /sbin/init
+  ```
+  - 启动后通过管理IP直接使用，无需后续操作
 
 ### 7.进入容器
   ```bash
@@ -119,7 +120,7 @@ opkg install luci-i18n-nikki-zh-cn
 
 ---
 ## clash 模板
-https://github.com/PlanetEditorX/subconverter/raw/refs/heads/master/base/config/ACL4SSR_Online_Full_AdblockPlus.ini
+https://github.com/PlanetEditorX/subconverter/raw/refs/heads/master/base/config/openclash.ini
 
 ---
 ## OpenClash-设置方案
