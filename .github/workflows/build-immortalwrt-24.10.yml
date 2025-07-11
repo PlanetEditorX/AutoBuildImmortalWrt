@@ -1,0 +1,579 @@
+name: build-immortalwrt-24.10
+on:
+  # push:
+  #   branches:
+  #     - main
+  # schedule:
+  #   - cron: '0 10 * * 1'  # 每周一的上午10点（UTC时间，对应北京时间下午6点）
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: '请输入要编译固件大小 单位(MB)'
+        required: true
+        default: '256'
+      ipaddr:
+        description: '输入管理IP(空为DHCP获取)'
+        required: false
+        default: '192.168.1.4'
+      gateway:
+        description: '输入默认网关'
+        required: false
+        default: '192.168.1.2'
+      include_docker:
+        description: '是否编译 Docker 插件'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      compile_image:
+        description: '是否编译磁盘镜像'
+        required: true
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      version_source:
+        description: '获取最新版本号方式'
+        required: true
+        default: 'GitHub'
+        type: choice
+        options:
+          - 'GitHub'
+          - 'Docker Hub'
+      version:
+        description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
+        required: false
+        default: ''
+      compile_shellcrash:
+        description: '是否编译ShellCrash'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      compile_nikki:
+        description: '是否编译nikki'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      PROFILE: ${{ github.event.inputs.profile || '512' }}
+      IPADDR: ${{ github.event.inputs.ipaddr || '192.168.1.4' }}
+      GATEWAY: ${{ github.event.inputs.gateway || '192.168.1.2' }}
+      INCLUDE_DOCKER: ${{ github.event.inputs.include_docker || 'no' }}
+      VERSION: ${{ github.event.inputs.version || '' }}
+      VERSION_SOURCE: ${{ github.event.inputs.version_source || 'GitHub' }}
+      COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
+      COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
+      COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get latest Docker tag
+        if: ${{ env.VERSION_SOURCE == 'Docker Hub' }}
+        run: |
+          # 通过page=2&page_size=1限制获取最新版本号，page=1&page_size=1为latest，page=2&page_size=1为X.Y.Z-arm
+          TAGS_URL="https://registry.hub.docker.com/v2/namespaces/${{ secrets.DOCKER_USERNAME }}/repositories/immortalwrt/tags?page=2&page_size=1"
+          TAGS_RESPONSE=$(curl -s $TAGS_URL)
+          docker_tag=$(echo $TAGS_RESPONSE | jq -r '.results[] | .name' | sort -V | tail -n1 | awk -F'-' '{print $1}')
+          # 输出X.Y.Z
+          echo "docker_tag=$docker_tag" >> $GITHUB_ENV
+
+      - name: Get latest tag And Increment Version
+        run: |
+          # 输入不为空时以输入为准
+          if [ $VERSION != "" ]; then
+            NEW_VERSION=$VERSION
+          else
+            # 为空以获取为准
+            # 获取最新的 tag 提取版本号部分
+            if [ $VERSION_SOURCE == "GitHub" ]; then
+              echo "从仓库中获取版本号"
+              version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^AutoBuild-ImmortalWrt-//')
+            else
+              echo "从Docker Hub中获取版本号"
+              version=$docker_tag
+            fi
+
+            # 当前版本为空时初始化版本号
+            if [[ "$version" == "null" ]]; then
+              NEW_VERSION='v1.0.0'
+            else
+              # 读取最新版本号并分割为数组
+              # 使用 IFS 分割版本号
+              IFS='.' read -r major minor patch <<< "$version"
+
+              # 去除 major 中的 "v"
+              major=$(echo "$major" | sed 's/^v//')
+
+              # 输出结果
+              echo "Major: $major"
+              echo "Minor: $minor"
+              echo "Patch: $patch"
+
+              # 递增补丁版本号
+              patch=$((patch + 1))
+              # 如果补丁版本号达到10，重置为0并递增次版本号
+              if [ $patch -eq 10 ]; then
+                  patch=0
+                  minor=$((minor + 1))
+                  # 如果次版本号达到10，重置为0并递增主版本号
+                  if [ $minor -eq 10 ]; then
+                      minor=0
+                      major=$((major + 1))
+                  fi
+              fi
+
+              # 构造新版本号
+              NEW_VERSION="v$major.$minor.$patch"
+            fi
+          fi
+          echo "NEW_VERSION: ${NEW_VERSION}"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Install Software
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y jq
+
+      - name: Set executable permissions
+        run: chmod +x ${{ github.workspace }}/src/24.10/build.sh
+
+      - name: Replace custom_ip value
+        if: ${{ env.IPADDR != '' }}
+        run: |
+          sed -i "s/custom_ip=\"dhcp\"/custom_ip=\"$IPADDR\"/g" ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+          sed -i "s/custom_gateway=\"\"/custom_gateway=\"$GATEWAY\"/g" ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+          cat ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+
+      - name: Build ImmortalWrt-x86-64-efi
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        run: |
+          profiles=$PROFILE
+          include_docker=$INCLUDE_DOCKER
+          IFS=',' read -r -a profile_array <<< "$profiles"
+
+          for profile in "${profile_array[@]}"; do
+            echo "Building for profile: $profile"
+            echo "Run Containers for amd64"
+            docker run --rm -i \
+              --user root \
+              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+              -v "${{ github.workspace }}/src/files:/home/build/immortalwrt/files" \
+              -v "${{ github.workspace }}/src/config/x86-64/.config:/home/build/immortalwrt/.config" \
+              -v "${{ github.workspace }}/src/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+              -e PROFILE=$profile \
+              -e INCLUDE_DOCKER=$include_docker \
+              immortalwrt/imagebuilder:x86-64-openwrt-24.10 \
+              /bin/bash /home/build/immortalwrt/build.sh
+          done
+
+      - name: GET IMG for x86-64
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        continue-on-error: true
+        run: |
+          tree -a
+          cp ${{ github.workspace }}/bin/targets/x86/64/*squashfs-combined-efi.img.gz ${{ github.workspace }}
+          for file in *squashfs-combined-efi.img.gz; do
+            ls
+            echo "Gunzip $file"
+            output_img="${file%.gz}"  # 移除 .gz 后缀
+            echo "解压文件: $file → $output_img"
+            gzip -dc $file > $output_img  # 强制解压有效部分
+          done
+
+      - name: IMG Convert QCOW2 for x86-64
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        run: |
+          for file in *-x86-64-generic-squashfs-combined-efi.img; do
+            # 提取文件名的前面部分(去掉 .img)
+            base_name="${file%.img}"
+
+            # 输出文件名并保存到变量
+            echo "Base name saved to variable: $base_name"
+
+            # 镜像转换, 将 img 转换为 qcow2
+            qemu-img convert -O qcow2 ${base_name}.img ${base_name}.qcow2
+          done
+
+          # 压缩qcow2文件
+          gzip -k -f ${base_name}.qcow2
+
+      - name: Build ImmortalWrt-armsr-armv8-efi
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        run: |
+          profiles=$PROFILE
+          include_docker=$INCLUDE_DOCKER
+          IFS=',' read -r -a profile_array <<< "$profiles"
+
+          for profile in "${profile_array[@]}"; do
+            echo "Building for profile: $profile"
+            echo "Run Containers for armv8"
+            docker run --rm -i \
+              --user root \
+              -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+              -v "${{ github.workspace }}/src/files:/home/build/immortalwrt/files" \
+              -v "${{ github.workspace }}/src/config/armsr_armv8/.config:/home/build/immortalwrt/.config" \
+              -v "${{ github.workspace }}/src/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+              -e PROFILE=$profile \
+              -e INCLUDE_DOCKER=$include_docker \
+              immortalwrt/imagebuilder:armsr-armv8-openwrt-24.10 \
+              /bin/bash /home/build/immortalwrt/build.sh
+          done
+
+      - name: GET IMG, QCOW2 And Vmdk for armv8
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        continue-on-error: true
+        run: |
+          tree -a
+          cp ${{ github.workspace }}/bin/targets/armsr/armv8/*-squashfs-combined-efi.* ${{ github.workspace }}
+          echo "重命名armv8文件"
+          for f in immortalwrt-*-armsr-armv8-generic-squashfs-combined-efi.*; do
+            new_name="${f/-r*-armsr/-armsr}" # 自动截断中间动态部分
+            mv -nv "$f" "$new_name"
+          done
+          # 压缩qcow2文件
+          gzip -k -f *-squashfs-combined-efi.qcow2
+
+          # 压缩vmdk文件
+          gzip -k -f *-squashfs-combined-efi.vmdk
+          ls -l ${{ github.workspace }}
+
+      - name: Download and Extract RootFS
+        run: |
+          mkdir -p immortalwrt
+          cd immortalwrt
+          # wget -O rootfs_amd64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/x86/64/immortalwrt-24.10.0-rc4-x86-64-rootfs.tar.gz
+          # wget -O rootfs_arm64.tar.gz https://archive.immortalwrt.org/releases/24.10.0-rc4/targets/armsr/armv8/immortalwrt-24.10.0-rc4-armsr-armv8-rootfs.tar.gz
+          # 24.10.0
+          # wget -O rootfs_amd64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.0/targets/x86/64/immortalwrt-24.10.0-x86-64-rootfs.tar.gz
+          # wget -O rootfs_arm64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.0/targets/armsr/armv8/immortalwrt-24.10.0-armsr-armv8-rootfs.tar.gz
+          # 24.10.1
+          wget -O rootfs_amd64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.1/targets/x86/64/immortalwrt-24.10.1-x86-64-rootfs.tar.gz
+          wget -O rootfs_arm64.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.1/targets/armsr/armv8/immortalwrt-24.10.1-armsr-armv8-rootfs.tar.gz
+
+          gzip -d rootfs_amd64.tar.gz
+          gzip -d rootfs_arm64.tar.gz
+
+      - name: Move rootfs.tar.gz to build context
+        run: |
+          mkdir -p ./src/amd64 ./src/arm64
+          mv immortalwrt/rootfs_amd64.tar ./src/amd64/rootfs.tar
+          mv immortalwrt/rootfs_arm64.tar ./src/arm64/rootfs.tar
+
+      - name: Build AMD Docker image
+        run: |
+          cp ${{ github.workspace }}/src/Dockerfile ./src/amd64
+          cp ${{ github.workspace }}/src/Dockerfile ./src/arm64
+          docker build -t immortalwrt:initial-amd64 ./src/amd64
+
+      - name: Build ARM Docker image
+        run: |
+          docker buildx build --platform linux/arm64 -t immortalwrt:initial-arm64 --load ./src/arm64
+
+      - name: Ensure Docker image exists
+        run: |
+          if ! docker image inspect immortalwrt:initial-arm64 &> /dev/null; then
+            echo "Image 'immortalwrt:initial-arm64' not found. Rebuilding..."
+            docker build -t immortalwrt:initial-arm64 --platform linux/arm64 ./src/arm64
+          fi
+
+      - name: List local Docker images
+        run: docker images
+
+      - name: Run container in immortalwrt-arm64
+        run: |
+          docker run -d \
+            --name immortalwrt-arm64 \
+            --platform linux/arm64 \
+            --privileged \
+            immortalwrt:initial-arm64 \
+            /bin/sh -c "while true; do sleep 1000; done"
+
+      - name: Install Openclash by Custom in immortalwrt-arm64
+        run: |
+          # 获取OpenClash配置
+          docker exec immortalwrt-arm64 sh -c "
+            mkdir -p /etc/openclash
+            wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/armsr_armv8/OpenClash-aarch64.tar.gz
+            tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
+          "
+
+      - name: Install Software in immortalwrt-arm64
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            mkdir -p /tmp/log /var/lock
+            opkg update
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+          "
+
+      - name: Remove Unuse Software in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            opkg remove samba4* with --force-removal-of-dependent-packages
+          "
+
+      # 自定义Openclash配置中包含内核
+      # - name: Copy Core in immortalwrt-arm64
+      #   run: |
+      #     gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-arm64-*.gz > clash_meta
+      #     docker cp clash_meta immortalwrt-arm64:/etc/openclash/core/
+
+      - name: Install OpenWrt-nikki in immortalwrt-arm64
+        if: ${{ env.COMPILE_NIKKI == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+            opkg install nikki
+            opkg install luci-app-nikki
+            opkg install luci-i18n-nikki-zh-cn
+            # 写入云端配置
+            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
+          "
+
+      - name: Install ShellCrash in immortalwrt-arm64
+        if: ${{ env.COMPILE_SHELLCRASH == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            # 写入云端配置
+            wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
+            chmod +x /tmp/shellclash.sh
+            sh /tmp/shellclash.sh
+          "
+
+      - name: Use Custom /etc/config in immortalwrt-arm64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-arm64 sh -c "
+            # 关闭 DNS 重定向
+            wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+            # openclash 配置
+            # wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/armsr_armv8/openclash
+            cp /etc/openclash/openclash /etc/config/openclash
+          "
+
+      - name: Commit modified container in immortalwrt-arm64
+        run: |
+          docker exec immortalwrt-arm64 sh -c "cat <<EOF > /etc/config/network
+          config interface 'loopback'
+                  option device 'lo'
+                  option proto 'static'
+                  option ipaddr '127.0.0.1'
+                  option netmask '255.0.0.0'
+
+          config globals 'globals'
+                  option ula_prefix 'fd28:5d8d:7180::/48'
+                  option packet_steering '1'
+
+          config interface 'lan'
+                  option device 'eth0'
+                  option proto 'static'
+                  option ipaddr '${IPADDR}'
+                  option netmask '255.255.255.0'
+                  option gateway '${GATEWAY}'
+                  option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
+          EOF"
+          docker restart immortalwrt-arm64
+          sleep 10s
+          docker commit immortalwrt-arm64 immortalwrt:arm64
+
+      - name: Run container in immortalwrt-amd64
+        run: |
+          docker run -d \
+            --name immortalwrt-amd64 \
+            --platform linux/amd64 \
+            --privileged \
+            immortalwrt:initial-amd64 \
+            /bin/sh -c "while true; do sleep 1000; done"
+
+      - name: Install Openclash by Custom in immortalwrt-amd64
+        run: |
+          # 获取OpenClash配置
+          docker exec immortalwrt-amd64 sh -c "
+            mkdir -p /etc/openclash
+            wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/x86-64/OpenClash-x86_64.tar.gz
+            tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
+          "
+
+      - name: Install Software in immortalwrt-amd64
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            mkdir -p /tmp/log /var/lock
+            opkg update
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+          "
+
+      - name: Remove Unuse Software in immortalwrt-amd64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            opkg remove samba4* with --force-removal-of-dependent-packages
+          "
+
+      - name: Copy Core in immortalwrt-amd64
+        run: |
+          gzip -dc ${{ github.workspace }}/src/files/core/clash/mihomo-linux-amd64-*.gz > clash_meta
+          docker cp clash_meta immortalwrt-amd64:/etc/openclash/core/
+
+      - name: Install OpenWrt-nikki in immortalwrt-amd64
+        if: ${{ env.COMPILE_NIKKI == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+            opkg install nikki
+            opkg install luci-app-nikki
+            opkg install luci-i18n-nikki-zh-cn
+            # 写入云端配置
+            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
+          "
+
+      - name: Install ShellCrash in immortalwrt-amd64
+        if: ${{ env.COMPILE_SHELLCRASH == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            # 写入云端配置
+            wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
+            chmod +x /tmp/shellclash.sh
+            sh /tmp/shellclash.sh
+          "
+
+      - name: Use Custom /etc/config in immortalwrt-amd64
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-amd64 sh -c "
+            # 关闭 DNS 重定向
+            wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+            # openclash 配置
+            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/x86-64/openclash
+          "
+
+      - name: Commit modified container in immortalwrt-amd64
+        run: |
+          docker exec immortalwrt-amd64 sh -c "cat <<EOF > /etc/config/network
+          config interface 'loopback'
+                  option device 'lo'
+                  option proto 'static'
+                  option ipaddr '127.0.0.1'
+                  option netmask '255.0.0.0'
+
+          config globals 'globals'
+                  option ula_prefix 'fd28:5d8d:7180::/48'
+                  option packet_steering '1'
+
+          config interface 'lan'
+                  option device 'eth0'
+                  option proto 'static'
+                  option ipaddr '${IPADDR}'
+                  option netmask '255.255.255.0'
+                  option gateway '${GATEWAY}'
+                  option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
+          EOF"
+          docker restart immortalwrt-amd64
+          sleep 10s
+          docker commit immortalwrt-amd64 immortalwrt:amd64
+
+      - name: Containers To Image And Push Docker Image
+        run: |
+          # 将容器打包为镜像
+          docker commit immortalwrt-amd64 immortalwrt:amd64
+          docker commit immortalwrt-arm64 immortalwrt:arm64
+          # 新增标签并推送
+          docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:amd
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:arm
+          # 去除 VERSION 中的 "v"
+          tags=$(echo "$VERSION" | sed 's/^v//')
+          echo "Tags: $tags"
+          docker tag immortalwrt:amd64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
+          docker tag immortalwrt:arm64 ${{ secrets.DOCKER_USERNAME }}/immortalwrt:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-amd
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:${tags}-arm
+          docker push ${{ secrets.DOCKER_USERNAME }}/immortalwrt:latest
+          docker ps -a
+
+      - name: Generate info.md
+        run: |
+          # 创建或修改 info.md 文件
+          echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
+          if [ -n $IPADDR ]; then
+            echo "#### 固件地址: \`$IPADDR\`" >> info.md
+          else
+            echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
+          fi
+          echo "#### 网关地址: \`$GATEWAY\`" >> info.md
+          echo "#### 用户名: \`root\` 密码：无" >> info.md
+          echo "#### 默认软件包大小: $PROFILE MB" >> info.md
+          echo "#### 编译信息" >> info.md
+          if [ $INCLUDE_DOCKER == "yes" ]; then
+          if [ $VERSION_SOURCE == "Github" ]; then
+            echo "- 版本号来源：Github" >> info.md
+          else
+            echo "- 版本号来源：Docker Hub" >> info.md
+          fi
+            echo "- 编译docker：YES" >> info.md
+          else
+            echo "- 编译docker：NO" >> info.md
+          fi
+          if [ $COMPILE_IMAGE == "yes" ]; then
+            echo "- 编译磁盘镜像：YES" >> info.md
+          else
+            echo "- 编译磁盘镜像：NO" >> info.md
+          fi
+          if [ $COMPILE_SHELLCRASH == "yes" ]; then
+            echo "- 编译ShellCrash：YES" >> info.md
+          else
+            echo "- 编译ShellCrash：NO" >> info.md
+          fi
+          if [ $COMPILE_NIKKI == "yes" ]; then
+            echo "- 编译nikki：YES" >> info.md
+          else
+            echo "- 编译nikki：NO" >> info.md
+          fi
+          cat info.md
+
+      - name: Upload ImmortWrt as release assets
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          tag_name: AutoBuild-ImmortalWrt-${{ env.VERSION }}
+          body_path: ${{ github.workspace }}/info.md
+          files: |
+            ${{ github.workspace }}/*squashfs-combined-efi.*.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
