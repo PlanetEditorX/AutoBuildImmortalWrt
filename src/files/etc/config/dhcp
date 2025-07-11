@@ -11,7 +11,6 @@ config dnsmasq
 	option use_stale_cache '3600'
 	option cachesize '0'
 	option nonegcache '1'
-	option authoritative '1'
 	option readethers '1'
 	option leasefile '/tmp/dhcp.leases'
 	option localservice '1'
