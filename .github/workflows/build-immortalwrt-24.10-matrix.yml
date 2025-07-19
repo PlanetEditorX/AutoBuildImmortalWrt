@@ -471,6 +471,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-info
+          path: ./build-info
+
+      - name: Verify downloaded files
+        run: ls -R ./build-info
 
       - uses: actions/download-artifact@v4
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
@@ -485,7 +489,7 @@ jobs:
         uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: AutoBuild-ImmortalWrt-${{ needs.linux_build.outputs.VERSION }}
-          body_path: build-info
+          body_path: build-info/info.md
           files: ImmortWrt-Release/*.gz
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
