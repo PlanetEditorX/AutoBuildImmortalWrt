@@ -447,6 +447,12 @@ jobs:
       - id: set_VERSION
         run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
 
+      - name: Upload info.md
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: ${{ github.workspace }}/info.md
+
       - name: 上传
         uses: actions/upload-artifact@v4
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
@@ -461,6 +467,11 @@ jobs:
     needs:
       - linux_build
     steps:
+      - name: Download info.md
+        uses: actions/download-artifact@v4
+        with:
+          name: build-info
+
       - uses: actions/download-artifact@v4
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
         with:
@@ -474,7 +485,7 @@ jobs:
         uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: AutoBuild-ImmortalWrt-${{ needs.linux_build.outputs.VERSION }}
-          body_path: ${{ github.workspace }}/info.md
+          body_path: build-info
           files: ImmortWrt-Release/*.gz
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
