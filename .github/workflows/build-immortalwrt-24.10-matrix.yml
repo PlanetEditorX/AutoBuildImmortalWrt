@@ -449,6 +449,7 @@ jobs:
 
       - name: 上传
         uses: actions/upload-artifact@v4
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         with:
           if-no-files-found: error
           name: ImmortWrt-Release
@@ -461,6 +462,7 @@ jobs:
       - linux_build
     steps:
       - uses: actions/download-artifact@v4
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
         with:
           name: ImmortWrt-Release
           path: ./ImmortWrt-Release
