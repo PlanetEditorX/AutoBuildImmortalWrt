@@ -476,6 +476,10 @@ jobs:
       - name: Verify downloaded files
         run: ls -R ./build-info
 
+      - name: Verify VERSION
+        run: |
+          echo "VERSION: ${{ needs.linux_build.outputs.VERSION }}"
+
       - uses: actions/download-artifact@v4
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
         with:
