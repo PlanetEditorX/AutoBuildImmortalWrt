@@ -99,7 +99,8 @@ jobs:
       COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
       COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
       COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
-
+    outputs:
+        VERSION_FOR_UPLOAD: ${{ steps.set_version_step_output.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -444,7 +445,8 @@ jobs:
           fi
           cat info.md
 
-      - id: set_VERSION
+      - name: Set ENV VERSION for upload
+        id: set_version_step_output
         run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Upload info.md
@@ -478,7 +480,7 @@ jobs:
 
       - name: Verify VERSION
         run: |
-          echo "VERSION: ${{ needs.linux_build.outputs.VERSION }}"
+          echo "VERSION: ${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}"
 
       - uses: actions/download-artifact@v4
         if: ${{ env.COMPILE_IMAGE == 'yes' }}
@@ -492,7 +494,7 @@ jobs:
       - name: Upload ImmortWrt as release assets
         uses: softprops/action-gh-release@v2.2.1
         with:
-          tag_name: AutoBuild-ImmortalWrt-${{ needs.linux_build.outputs.VERSION }}
+          tag_name: AutoBuild-ImmortalWrt-${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}
           body_path: build-info/info.md
           files: ImmortWrt-Release/*.gz
           token: ${{ secrets.GITHUB_TOKEN }}
