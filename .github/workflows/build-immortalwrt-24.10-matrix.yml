@@ -450,6 +450,7 @@ jobs:
         run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Upload info.md
+        if: matrix.arch == 'aarch64'
         uses: actions/upload-artifact@v4
         with:
           name: build-info
