@@ -328,17 +328,17 @@ jobs:
               opkg update
               opkg install keepalived keepalived-sync
             "
-          else
-            echo "Installing keepalived for amd64"
-            docker exec immortalwrt-${ARCH} sh -c "
-              mkdir -p /tmp/packages
-              opkg update
-              wget -O /tmp/packages/keepalived.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived_2.3.1-r1_x86_64.ipk
-              wget -O /tmp/packages/keepalived-sync.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived-sync_2.3.1-r1_x86_64.ipk
-              opkg install /tmp/packages/keepalived-sync.ipk
-              opkg install /tmp/packages/keepalived.ipk
-              rm -rf /tmp/packages/
-            "
+          # else
+          #   echo "Installing keepalived for amd64"
+          #   docker exec immortalwrt-${ARCH} sh -c "
+          #     mkdir -p /tmp/packages
+          #     opkg update
+          #     wget -O /tmp/packages/keepalived.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived_2.3.1-r1_x86_64.ipk
+          #     wget -O /tmp/packages/keepalived-sync.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived-sync_2.3.1-r1_x86_64.ipk
+          #     opkg install /tmp/packages/keepalived-sync.ipk
+          #     opkg install /tmp/packages/keepalived.ipk
+          #     rm -rf /tmp/packages/
+          #   "
           fi
 
       - name: Remove Unuse Software in immortalwrt-${{ matrix.arch }}
