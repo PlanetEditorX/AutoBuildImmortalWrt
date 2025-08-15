@@ -316,30 +316,31 @@ jobs:
       - name: Install keepalived in immortalwrt-${{ matrix.arch }}
         run: |
           ARCH="${{ matrix.arch }}"
-          if [ "$ARCH" = "aarch64" ]; then
-            echo "Installing keepalived for aarch64"
-            docker exec immortalwrt-${ARCH} sh -c "
-              opkg update
-              opkg install keepalived keepalived-sync
-            "
-          else
-            echo "Installing keepalived for amd64"
-            docker exec immortalwrt-${ARCH} sh -c "
-              opkg update
-              opkg install keepalived keepalived-sync
-            "
-          # else
-          #   echo "Installing keepalived for amd64"
-          #   docker exec immortalwrt-${ARCH} sh -c "
-          #     mkdir -p /tmp/packages
-          #     opkg update
-          #     wget -O /tmp/packages/keepalived.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived_2.3.1-r1_x86_64.ipk
-          #     wget -O /tmp/packages/keepalived-sync.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived-sync_2.3.1-r1_x86_64.ipk
-          #     opkg install /tmp/packages/keepalived-sync.ipk
-          #     opkg install /tmp/packages/keepalived.ipk
-          #     rm -rf /tmp/packages/
-          #   "
-          fi
+          echo "Installing keepalived and keepalived-sync for $ARCH"
+          docker exec immortalwrt-${ARCH} sh -c '
+            opkg update
+            PKGS="keepalived keepalived-sync"
+            for PKG in $PKGS; do
+              if ! opkg install $PKG; then
+                echo "Fallback: downloading $PKG manually"
+                case "$ARCH" in
+                  aarch64)
+                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/aarch64_generic/packages/${PKG}_2.3.1-r1_aarch64_generic.ipk"
+                    ;;
+                  amd64|x86_64)
+                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/${PKG}_2.3.1-r1_x86_64.ipk"
+                    ;;
+                  *)
+                    echo "Unsupported arch: $ARCH"
+                    exit 1
+                    ;;
+                esac
+                wget -O /tmp/${PKG}.ipk "$URL"
+                opkg install /tmp/${PKG}.ipk
+                rm -f /tmp/${PKG}.ipk
+              fi
+            done
+          '
 
       - name: Remove Unuse Software in immortalwrt-${{ matrix.arch }}
         continue-on-error: true
