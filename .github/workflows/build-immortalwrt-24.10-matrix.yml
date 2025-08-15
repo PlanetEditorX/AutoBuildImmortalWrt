@@ -312,8 +312,24 @@ jobs:
             mkdir -p /tmp/log /var/lock
             opkg update
             opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
-            keepalived keepalived-sync
           "
+      - name: Install keepalived in immortalwrt-${{ matrix.arch }}
+        run: |
+          if ${{ matrix.arch }} == 'aarch64'; then
+            echo "Installing keepalived for aarch64"
+            docker exec immortalwrt-${{ matrix.arch }} sh -c "
+              opkg update
+              opkg install keepalived keepalived-sync
+            "
+          else
+            echo "Installing keepalived for amd64"
+            docker exec immortalwrt-${{ matrix.arch }} sh -c "
+              opkg update
+              wget -O /tmp/keepalived.ipk https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/keepalived_2.3.1-r1_x86_64.ipk
+              opkg install /tmp/keepalived.ipk
+              rm -f /tmp/keepalived.ipk
+            "
+          fi
 
       - name: Remove Unuse Software in immortalwrt-${{ matrix.arch }}
         continue-on-error: true
