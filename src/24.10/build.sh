@@ -42,6 +42,14 @@ PACKAGES="$PACKAGES script-utils"
 PACKAGES="$PACKAGES luci-i18n-samba4-zh-cn"
 PACKAGES="$PACKAGES lrzsz"
 PACKAGES="$PACKAGES nano"
+# 启用 keepalived和kmod-nf-ipvs 模块
+PACKAGES="$PACKAGES libgcc1 libpthread zlib liblzma libbz2-1.0"
+PACKAGES="$PACKAGES libnl-core200 libnl-genl200 libnl-route200"
+PACKAGES="$PACKAGES libip4tc2 libip6tc2 libxtables12 libipset13"
+PACKAGES="$PACKAGES kmod-ipt-core kmod-nf-ipt kmod-ipt-conntrack kmod-ipt-ipset"
+PACKAGES="$PACKAGES kmod-nf-ipvs"
+PACKAGES="$PACKAGES libmagic libkmod"
+PACKAGES="$PACKAGES keepalived"
 
 # 判断是否需要编译 Docker 插件
 if [ "$INCLUDE_DOCKER" = "yes" ]; then
