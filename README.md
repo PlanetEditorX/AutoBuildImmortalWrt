@@ -68,7 +68,7 @@
     ```
   - amd：最新amd版本
     ```bash
-    docker push yexundao/immortalwrt-amd:latest
+    docker pull yexundao/immortalwrt-amd:latest
     ```
 
 ### 6.创建容器
