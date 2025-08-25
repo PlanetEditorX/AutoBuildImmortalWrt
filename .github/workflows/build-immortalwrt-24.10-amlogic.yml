@@ -30,10 +30,10 @@ on:
       rootfs_source:
         description: '镜像来源'
         required: true
-        default: 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download'
+        default: 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz'
         type: choice
         options:
-          - 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download'
+          - 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz'
 
       version:
         description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
@@ -65,7 +65,6 @@ jobs:
             artifact: subconverter_aarch64
             os: ubuntu-24.04-arm
             type: armsr_armv8
-            RootFS: OpenWrt_official_save_2025.08/openwrt-armsr-armv8-generic-rootfs.tar.gz
             Build_Folder: ./src/aarch64
             Openclash: armsr_armv8/OpenClash-aarch64.tar.gz
             platform: arm
@@ -80,7 +79,7 @@ jobs:
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'Docker Hub' }}
       COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
       COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
-      ROOTFS_SOURCE: ${{ github.event.inputs.rootfs_source || 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download' }}
+      ROOTFS_SOURCE: ${{ github.event.inputs.rootfs_source || 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz' }}
     outputs:
         VERSION_FOR_UPLOAD: ${{ steps.set_version_step_output.outputs.version }}
     steps:
@@ -177,9 +176,7 @@ jobs:
           cd immortalwrt
           echo "Using rootfs source: $ROOTFS_SOURCE"
           echo "Architecture: ${{ matrix.arch }}"
-          $url=$ROOTFS_SOURCE/${{ matrix.RootFS }}
-          echo "Download URL: $url"
-          wget -O rootfs.tar.gz "$url"
+          wget -O rootfs.tar.gz "$ROOTFS_SOURCE"
           gzip -d rootfs.tar.gz || tar -xf rootfs.tar.gz
 
       - name: Move rootfs.tar.gz to build context
