@@ -30,10 +30,10 @@ on:
       rootfs_source:
         description: '镜像来源'
         required: true
-        default: 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz'
+        default: 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_official_save_2025.08/openwrt-armsr-armv8-generic-rootfs.tar.gz'
         type: choice
         options:
-          - 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz'
+          - 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_official_save_2025.08/openwrt-armsr-armv8-generic-rootfs.tar.gz'
 
       version:
         description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
@@ -79,7 +79,7 @@ jobs:
       VERSION_SOURCE: ${{ github.event.inputs.version_source || 'Docker Hub' }}
       COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
       COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
-      ROOTFS_SOURCE: ${{ github.event.inputs.rootfs_source || 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_immortalwrt_save_2025.08/immortalwrt-armsr-armv8-generic-rootfs.tar.gz' }}
+      ROOTFS_SOURCE: ${{ github.event.inputs.rootfs_source || 'https://github.com/ophub/amlogic-s9xxx-openwrt/releases/download/OpenWrt_official_save_2025.08/openwrt-armsr-armv8-generic-rootfs.tar.gz' }}
     outputs:
         VERSION_FOR_UPLOAD: ${{ steps.set_version_step_output.outputs.version }}
     steps:
