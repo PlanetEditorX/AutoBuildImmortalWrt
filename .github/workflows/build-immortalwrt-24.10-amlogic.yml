@@ -1,0 +1,415 @@
+name: build-immortalwrt-24.10-amlogic
+on:
+  # push:
+  #   branches:
+  #     - main
+  schedule:
+    - cron: '0 10 * * 1'  # 每周一的上午10点（UTC时间，对应北京时间下午6点）
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: '请输入要编译固件大小 单位(MB)'
+        required: true
+        default: '256'
+      ipaddr:
+        description: '输入管理IP(空为DHCP获取)'
+        required: false
+        default: '192.168.1.3'
+      gateway:
+        description: '输入默认网关'
+        required: false
+        default: '192.168.1.2'
+      version_source:
+        description: '获取最新版本号方式'
+        required: true
+        default: 'Docker Hub'
+        type: choice
+        options:
+          - 'Docker Hub'
+          - 'GitHub'
+      version:
+        description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
+        required: false
+        default: ''
+      compile_shellcrash:
+        description: '是否编译ShellCrash'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      compile_nikki:
+        description: '是否编译nikki'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+
+jobs:
+  linux_build:
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            artifact: subconverter_aarch64
+            os: ubuntu-24.04-arm
+            type: armsr_armv8
+            RootFS: OpenWrt_official_save_2025.08/openwrt-armsr-armv8-generic-rootfs.tar.gz
+            Build_Folder: ./src/aarch64
+            Openclash: armsr_armv8/OpenClash-aarch64.tar.gz
+            platform: arm
+
+    runs-on: ${{ matrix.os }}
+    name: Linux ${{ matrix.arch }} Build
+    env:
+      PROFILE: ${{ github.event.inputs.profile || '512' }}
+      IPADDR: ${{ github.event.inputs.ipaddr || '192.168.1.3' }}
+      GATEWAY: ${{ github.event.inputs.gateway || '192.168.1.2' }}
+      VERSION: ${{ github.event.inputs.version || '' }}
+      VERSION_SOURCE: ${{ github.event.inputs.version_source || 'Docker Hub' }}
+      COMPILE_SHELLCRASH: ${{ github.event.inputs.compile_shellcrash || 'no' }}
+      COMPILE_NIKKI: ${{ github.event.inputs.compile_nikki || 'no' }}
+    outputs:
+        VERSION_FOR_UPLOAD: ${{ steps.set_version_step_output.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get latest Docker tag
+        if: ${{ env.VERSION_SOURCE == 'Docker Hub' }}
+        run: |
+          # 通过page=2&page_size=1限制获取最新版本号，page=1&page_size=1为latest，page=2&page_size=1为X.Y.Z-arm
+          TAGS_URL="https://registry.hub.docker.com/v2/namespaces/${{ secrets.DOCKER_USERNAME }}/repositories/immortalwrt-${{ matrix.platform }}/tags?page=2&page_size=1"
+          TAGS_RESPONSE=$(curl -s $TAGS_URL)
+          docker_tag=$(echo $TAGS_RESPONSE | jq -r '.results[] | .name' | sort -V | tail -n1 | awk -F'-' '{print $1}')
+          # 输出X.Y.Z
+          echo "docker_tag=$docker_tag" >> $GITHUB_ENV
+
+      - name: Get latest tag And Increment Version
+        run: |
+          # 输入不为空时以输入为准
+          if [ $VERSION != "" ]; then
+            NEW_VERSION=$VERSION
+          else
+            # 为空以获取为准
+            # 获取最新的 tag 提取版本号部分
+            if [ $VERSION_SOURCE == "GitHub" ]; then
+              echo "从仓库中获取版本号"
+              version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^AutoBuild-ImmortalWrt-//')
+            else
+              echo "从Docker Hub中获取版本号"
+              version=$docker_tag
+            fi
+
+            # 当前版本为空时初始化版本号
+            if [[ "$version" == "null" ]]; then
+              NEW_VERSION='v1.0.0'
+            else
+              # 读取最新版本号并分割为数组
+              # 使用 IFS 分割版本号
+              IFS='.' read -r major minor patch <<< "$version"
+
+              # 去除 major 中的 "v"
+              major=$(echo "$major" | sed 's/^v//')
+
+              # 输出结果
+              echo "Major: $major"
+              echo "Minor: $minor"
+              echo "Patch: $patch"
+
+              # 递增补丁版本号
+              patch=$((patch + 1))
+              # 如果补丁版本号达到10，重置为0并递增次版本号
+              if [ $patch -eq 10 ]; then
+                  patch=0
+                  minor=$((minor + 1))
+                  # 如果次版本号达到10，重置为0并递增主版本号
+                  if [ $minor -eq 10 ]; then
+                      minor=0
+                      major=$((major + 1))
+                  fi
+              fi
+
+              # 构造新版本号
+              NEW_VERSION="v$major.$minor.$patch"
+            fi
+          fi
+          echo "NEW_VERSION: ${NEW_VERSION}"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Install Software
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils
+          sudo apt-get install -y jq
+
+      - name: Set executable permissions
+        run: chmod +x ${{ github.workspace }}/src/24.10/build.sh
+
+      - name: Replace custom_ip value
+        if: ${{ env.IPADDR != '' }}
+        run: |
+          sed -i "s/custom_ip=\"dhcp\"/custom_ip=\"$IPADDR\"/g" ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+          sed -i "s/custom_gateway=\"\"/custom_gateway=\"$GATEWAY\"/g" ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+          cat ${{ github.workspace }}/src/files/etc/uci-defaults/99-custom.sh
+
+      - name: Download and Extract RootFS
+        run: |
+          mkdir -p immortalwrt
+          cd immortalwrt
+          echo "Using rootfs source: $ROOTFS_SOURCE"
+          echo "Architecture: ${{ matrix.arch }}"
+          $url=$ROOTFS_SOURCE/${{ matrix.RootFS }}
+          echo "Download URL: $url"
+          wget -O rootfs.tar.gz "$url"
+          gzip -d rootfs.tar.gz || tar -xf rootfs.tar.gz
+
+      - name: Move rootfs.tar.gz to build context
+        run: |
+          echo "Moving ${{ matrix.arch }} rootfs to ${{ matrix.Build_Folder }}"
+          mkdir -p ${{ matrix.Build_Folder }}
+          mv immortalwrt/rootfs.tar ${{ matrix.Build_Folder }}/rootfs.tar
+
+      - name: Build ${{ matrix.arch }} Docker image
+        run: |
+          echo "Building ${{ matrix.arch }} Docker image"
+          cp ${{ github.workspace }}/src/Dockerfile ${{ matrix.Build_Folder }}
+          docker build -t immortalwrt:initial-${{ matrix.arch }} ${{ matrix.Build_Folder }}
+
+      - name: Ensure Docker image exists
+        run: |
+          if ! docker image inspect immortalwrt:initial-${{ matrix.arch }} &> /dev/null; then
+            echo "Image 'immortalwrt:initial-${{ matrix.arch }}' not found. Rebuilding..."
+            docker build -t immortalwrt:initial-${{ matrix.arch }} --platform linux/${{ matrix.arch }} ${{ matrix.Build_Folder }}
+          fi
+
+      - name: List local Docker images
+        run: docker images
+
+      - name: Run container in immortalwrt-${{ matrix.arch }}
+        run: |
+          docker run -d \
+            --name immortalwrt-${{ matrix.arch }} \
+            --platform linux/${{ matrix.arch }} \
+            --privileged \
+            immortalwrt:initial-${{ matrix.arch }} \
+            /bin/sh -c "while true; do sleep 1000; done"
+
+      - name: Install Openclash by Custom in immortalwrt-${{ matrix.arch }}
+        run: |
+          # 获取OpenClash配置
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            mkdir -p /etc/openclash
+            wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/${{ matrix.OpenClash }}
+            tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
+          "
+
+      - name: Install Software in immortalwrt-${{ matrix.arch }}
+        run: |
+          echo "Installing software for ${{ matrix.arch }}"
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            mkdir -p /tmp/log /var/lock
+            apk update
+            apk add curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+          "
+      - name: Install keepalived in immortalwrt-${{ matrix.arch }}
+        run: |
+          ARCH="${{ matrix.arch }}"
+          echo "Installing keepalived and keepalived-sync for $ARCH"
+          docker exec immortalwrt-${ARCH} sh -c '
+            apk update
+            PKGS="keepalived keepalived-sync"
+            for PKG in $PKGS; do
+              if ! apk add $PKG; then
+                echo "Fallback: downloading $PKG manually"
+                case "$ARCH" in
+                  aarch64)
+                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/aarch64_generic/packages/${PKG}_2.3.1-r1_aarch64_generic.ipk"
+                    ;;
+                  amd64|x86_64)
+                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/${PKG}_2.3.1-r1_x86_64.ipk"
+                    ;;
+                  *)
+                    echo "Unsupported arch: $ARCH"
+                    exit 1
+                    ;;
+                esac
+                wget -O /tmp/${PKG}.ipk "$URL"
+                apk add /tmp/${PKG}.ipk
+                rm -f /tmp/${PKG}.ipk
+              fi
+            done
+          '
+
+      - name: Remove Unuse Software in immortalwrt-${{ matrix.arch }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            opkg remove samba4* with --force-removal-of-dependent-packages
+          "
+
+      - name: Install OpenWrt-nikki in immortalwrt-${{ matrix.arch }}
+        if: ${{ env.COMPILE_NIKKI == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
+            apk add nikki
+            apk add luci-app-nikki
+            apk add luci-i18n-nikki-zh-cn
+            # 写入云端配置
+            wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
+          "
+
+      - name: Install ShellCrash in immortalwrt-${{ matrix.arch }}
+        if: ${{ env.COMPILE_SHELLCRASH == 'yes' }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            # 写入云端配置
+            wget -O /tmp/shellclash.sh https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/shellclash.sh
+            chmod +x /tmp/shellclash.sh
+            sh /tmp/shellclash.sh
+          "
+
+      - name: Use Custom /etc/config in immortalwrt-${{ matrix.arch }}
+        continue-on-error: true
+        run: |
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "
+            # 关闭 DNS 重定向
+            wget -O /etc/config/dhcp https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/files/etc/config/dhcp
+            # openclash 配置
+            wget -O /etc/config/openclash https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/${{ matrix.type }}/openclash
+          "
+
+      - name: Commit modified container in immortalwrt-${{ matrix.arch }}
+        run: |
+          docker exec immortalwrt-${{ matrix.arch }} sh -c "cat <<EOF > /etc/config/network
+          config interface 'loopback'
+                  option device 'lo'
+                  option proto 'static'
+                  option ipaddr '127.0.0.1'
+                  option netmask '255.0.0.0'
+
+          config globals 'globals'
+                  option ula_prefix 'fd28:5d8d:7180::/48'
+                  option packet_steering '1'
+
+          config interface 'lan'
+                  option device 'eth0'
+                  option proto 'static'
+                  option ipaddr '${IPADDR}'
+                  option netmask '255.255.255.0'
+                  option gateway '${GATEWAY}'
+                  option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
+          EOF"
+          docker restart immortalwrt-${{ matrix.arch }}
+          sleep 10s
+          docker commit immortalwrt-${{ matrix.arch }} immortalwrt:${{ matrix.arch }}
+
+      - name: Containers To Image And Push Docker Image
+        run: |
+          # Commit container to image
+          docker commit immortalwrt-${{ matrix.arch }} immortalwrt:${{ matrix.arch }}
+          REPO_NAME=${{ secrets.DOCKER_USERNAME }}/immortalwrt-${{ matrix.platform }}
+          # Tag with version (removing 'v' prefix)
+          TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')
+          docker tag immortalwrt:${{ matrix.arch }} $REPO_NAME:${TAGS_VERSION}
+          # Push to Docker Hub
+          docker push $REPO_NAME:${TAGS_VERSION} || { echo "Failed to push $REPO_NAME:${TAGS_VERSION}"; exit 1; }
+          # Tag and push 'latest' (optional: restrict to one architecture if desired)
+          docker tag immortalwrt:${{ matrix.arch }} $REPO_NAME:latest
+          docker push $REPO_NAME:latest || { echo "Failed to push $REPO_NAME:latest"; exit 1; }
+          # Log Docker images and containers for debugging
+          docker images
+          docker ps -a
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f immortalwrt-${{ matrix.arch }} || true
+          docker rmi immortalwrt:${{ matrix.arch }} || true
+
+      - name: Generate info.md
+        if: matrix.arch == 'aarch64'
+        run: |
+          # 创建或修改 info.md 文件
+          echo "[![Github](https://img.shields.io/badge/Release文件可在国内加速站下载-FC7C0D?logo=github&logoColor=fff&labelColor=000&style=for-the-badge)](https://wkdaily.cpolar.top/archives/1)" >> info.md
+          if [ -n $IPADDR ]; then
+            echo "#### 固件地址: \`$IPADDR\`" >> info.md
+          else
+            echo "#### 固件地址: DHCP获取，查看上级路由" >> info.md
+          fi
+          echo "#### 网关地址: \`$GATEWAY\`" >> info.md
+          echo "#### 用户名: \`root\` 密码：无" >> info.md
+          echo "#### 默认软件包大小: $PROFILE MB" >> info.md
+          echo "#### 编译信息" >> info.md
+          if [ $VERSION_SOURCE == "Github" ]; then
+            echo "- 版本号来源：Github" >> info.md
+          else
+            echo "- 版本号来源：Docker Hub" >> info.md
+          fi
+          if [ $COMPILE_SHELLCRASH == "yes" ]; then
+            echo "- 编译ShellCrash：YES" >> info.md
+          else
+            echo "- 编译ShellCrash：NO" >> info.md
+          fi
+          if [ $COMPILE_NIKKI == "yes" ]; then
+            echo "- 编译nikki：YES" >> info.md
+          else
+            echo "- 编译nikki：NO" >> info.md
+          fi
+          cat info.md
+
+      - name: Set ENV VERSION for upload
+        id: set_version_step_output
+        run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Upload info.md
+        if: matrix.arch == 'aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: ${{ github.workspace }}/info.md
+
+  upload:
+    runs-on: ubuntu-latest
+
+    needs:
+      - linux_build
+    steps:
+      - name: Download info.md
+        uses: actions/download-artifact@v4
+        with:
+          name: build-info
+          path: ./build-info
+
+      - name: Verify downloaded files
+        run: ls -R ./build-info
+
+      - name: Verify VERSION
+        run: |
+          echo "VERSION: ${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}"
+
+      - name: Install dependencies
+        run: sudo apt-get install tree -y
+
+      - name: Upload ImmortWrt as release assets
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          tag_name: AutoBuild-ImmortalWrt-${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}
+          body_path: build-info/info.md
+          files: ImmortWrt-Release/*.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
