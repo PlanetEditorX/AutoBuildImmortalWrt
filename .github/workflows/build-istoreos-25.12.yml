@@ -189,6 +189,7 @@ jobs:
           cd "$IB_ROOT"
           make image \
             PROFILE=generic \
+            CONFIG_TARGET_ROOTFS_TARGZ=y \
             ENABLE_CPUPERF=n \
             FILES="${{ github.workspace }}/files" \
             ROOTFS_PARTSIZE=$ROOTFS_MB > make_image.log 2>&1
