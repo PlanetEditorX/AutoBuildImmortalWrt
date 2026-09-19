@@ -297,20 +297,25 @@ jobs:
           docker restart istoreos-${{ matrix.arch }}
           sleep 10s
 
-      - name: Commit modified container in istoreos-${{ matrix.arch }}
+      - name: Commit and Push per-arch image (version follows upstream)
         run: |
           docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
-
-      - name: Containers To Image And Push Docker Image
-        run: |
-          docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
-          REPO_NAME=${{ secrets.DOCKER_USERNAME }}/istoreos-${{ matrix.platform }}
-          TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')
-          docker tag istoreos:${{ matrix.arch }} $REPO_NAME:${TAGS_VERSION}
-          docker push $REPO_NAME:${TAGS_VERSION} || { echo "Failed to push $REPO_NAME:${TAGS_VERSION}"; exit 1; }
-          docker tag istoreos:${{ matrix.arch }} $REPO_NAME:latest
-          docker push $REPO_NAME:latest || { echo "Failed to push latest"; exit 1; }
-          docker images
+          IB_ROOT="$IB_ROOT"
+          # 版本号跟随上游 iStoreOS，从 imagebuilder .config 读取
+          UP=$(awk -F'[=\"]' '$1=="CONFIG_VERSION_NUMBER"{print $2;exit}' "$IB_ROOT/.config" 2>/dev/null)
+          [ -z "$UP" ] && UP=$(awk -F'[=\"]' '$1=="CONFIG_VERSION_CODE"{print $2;exit}' "$IB_ROOT/.config" 2>/dev/null)
+          [ -z "$UP" ] && UP=$(grep -oE '25\.[0-9]+\.[0-9]+' "$IB_ROOT/.config" 2>/dev/null | head -1)
+          # 若 .config 无法读取，退回从固件包版本推断
+          [ -z "$UP" ] && UP=$(grep -oE 'istoreos-[0-9]+\.[0-9]+\.[0-9]+' /tmp/ib_list.html 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          [ -z "$UP" ] && { echo "!! cannot read upstream version"; exit 1; }
+          UP=$(echo "$UP" | xargs)
+          echo "upstream version: $UP"
+          echo "UP=$UP" >> $GITHUB_ENV
+          REPO=${{ secrets.DOCKER_USERNAME }}/istoreos
+          docker tag istoreos:${{ matrix.arch }} $REPO:$UP-${{ matrix.docker_arch }}
+          docker push $REPO:$UP-${{ matrix.docker_arch }} || { echo "push $UP-${{ matrix.docker_arch }} failed"; exit 1; }
+          docker tag istoreos:${{ matrix.arch }} $REPO:${{ matrix.docker_arch }}
+          docker push $REPO:${{ matrix.docker_arch }} || { echo "push ${{ matrix.docker_arch }} failed"; exit 1; }
           docker ps -a
 
       - name: Cleanup
@@ -342,7 +347,7 @@ jobs:
 
       - name: Set ENV VERSION for upload
         id: set_version_step_output
-        run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=$UP" >> $GITHUB_OUTPUT
 
       - name: Upload info.md
         if: matrix.arch == 'aarch64'
@@ -358,6 +363,38 @@ jobs:
           if-no-files-found: ignore
           name: iStoreOS-Release
           path: ${{ github.workspace }}/*combined*.gz
+
+  merge-manifest:
+    runs-on: ubuntu-latest
+    needs: linux_build
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Merge multi-arch manifest and tag latest
+        run: |
+          set -e
+          USER=${{ secrets.DOCKER_USERNAME }}
+          REPO=$USER/istoreos
+          # 从 registry 反查最近推送的 arm64/amd64 side tag，取其上游版本
+          curl -s "https://registry.hub.docker.com/v2/namespaces/$USER/repositories/istoreos/tags?page_size=100&ordering=last_updated" > tags.json
+          VER=$(jq -r '.results[].name' tags.json 2>/dev/null \
+                  | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-arm64$' | head -1 | sed 's/-arm64$//')
+          [ -n "$VER" ] || VER=$(jq -r '.results[].name' tags.json 2>/dev/null \
+                  | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-amd64$' | head -1 | sed 's/-amd64$//')
+          [ -n "$VER" ] || { echo "!! no side tag found to merge"; exit 1; }
+          echo "merging upstream version: $VER"
+          docker buildx imagetools create --tag "$REPO:$VER" \
+            "$REPO:$VER-arm64" "$REPO:$VER-amd64"
+          docker buildx imagetools create --tag "$REPO:latest" \
+            "$REPO:$VER-arm64" "$REPO:$VER-amd64"
+          docker buildx imagetools inspect "$REPO:$VER"
 
   upload:
     runs-on: ubuntu-latest
