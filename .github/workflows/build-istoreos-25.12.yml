@@ -254,6 +254,7 @@ jobs:
             --name istoreos-${{ matrix.arch }} \
             --platform linux/${{ matrix.docker_arch }} \
             --privileged \
+            --dns 223.5.5.5 --dns 1.1.1.1 \
             istoreos:initial-${{ matrix.arch }} \
             /bin/sh -c "while true; do sleep 1000; done"
 
@@ -301,13 +302,15 @@ jobs:
         run: |
           docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
           IB_ROOT="$IB_ROOT"
+          IB_CFG="$IB_ROOT/.config"
           # 版本号跟随上游 iStoreOS，从 imagebuilder .config 读取
-          UP=$(awk -F'[=\"]' '$1=="CONFIG_VERSION_NUMBER"{print $2;exit}' "$IB_ROOT/.config" 2>/dev/null)
-          [ -z "$UP" ] && UP=$(awk -F'[=\"]' '$1=="CONFIG_VERSION_CODE"{print $2;exit}' "$IB_ROOT/.config" 2>/dev/null)
-          [ -z "$UP" ] && UP=$(grep -oE '25\.[0-9]+\.[0-9]+' "$IB_ROOT/.config" 2>/dev/null | head -1)
-          # 若 .config 无法读取，退回从固件包版本推断
-          [ -z "$UP" ] && UP=$(grep -oE 'istoreos-[0-9]+\.[0-9]+\.[0-9]+' /tmp/ib_list.html 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-          [ -z "$UP" ] && { echo "!! cannot read upstream version"; exit 1; }
+          UP=$(awk -F'[="]' '$1=="CONFIG_VERSION_NUMBER"{print $2;exit}' "$IB_CFG" 2>/dev/null)
+          if [ -z "$UP" ]; then UP=$(awk -F'[="]' '$1=="CONFIG_VERSION_CODE"{print $2;exit}' "$IB_CFG" 2>/dev/null); fi
+          if [ -z "$UP" ]; then UP=$(grep -oE '25\.[0-9]+\.[0-9]+' "$IB_CFG" 2>/dev/null | head -1); fi
+          if [ -z "$UP" ]; then
+            echo "!! cannot read upstream version from imagebuilder .config"
+            exit 1
+          fi
           UP=$(echo "$UP" | xargs)
           echo "upstream version: $UP"
           echo "UP=$UP" >> $GITHUB_ENV
