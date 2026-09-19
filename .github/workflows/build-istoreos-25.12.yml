@@ -157,9 +157,19 @@ jobs:
         run: |
           mkdir -p ib
           cd ib
-          wget -q -O ib.tar.zst "${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
+          echo "downloading ${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
+          wget --progress=dot:giga --timeout=30 --tries=3 \
+               -O ib.tar.zst "${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
+          echo "download done, size: $(du -h ib.tar.zst | cut -f1)"
+          # 用官方 sha256ums 校验，失败即中止
+          wget -q -O sha256sums "${IB_SERVER}/${{ matrix.ib_dir }}/sha256sums"
+          if grep -q "$(sha256sum ib.tar.zst | cut -d' ' -f1).*$(basename ${IB_NAME})" sha256sums; then
+            echo "sha256 OK"
+          else
+            echo "!! sha256 mismatch"; exit 1
+          fi
           tar --zstd -xf ib.tar.zst
-          rm -f ib.tar.zst
+          rm -f ib.tar.zst sha256sums
           echo "--- imagebuilder dir ---"
           ls -la
 
