@@ -302,13 +302,15 @@ jobs:
         run: |
           docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
           IB_ROOT="$IB_ROOT"
-          IB_CFG="$IB_ROOT/.config"
-          # 版本号跟随上游 iStoreOS，从 imagebuilder .config 读取
-          UP=$(awk -F'[="]' '$1=="CONFIG_VERSION_NUMBER"{print $2;exit}' "$IB_CFG" 2>/dev/null)
-          if [ -z "$UP" ]; then UP=$(awk -F'[="]' '$1=="CONFIG_VERSION_CODE"{print $2;exit}' "$IB_CFG" 2>/dev/null); fi
-          if [ -z "$UP" ]; then UP=$(grep -oE '25\.[0-9]+\.[0-9]+' "$IB_CFG" 2>/dev/null | head -1); fi
+          # 版本号跟随上游 iStoreOS：从容器内 /etc/openwrt_release 读取（权威版本文件）
+          docker cp istoreos-${{ matrix.arch }}:/etc/openwrt_release /tmp/openwrt_release 2>/dev/null || true
+          echo "=== /etc/openwrt_release ==="
+          cat /tmp/openwrt_release 2>/dev/null || true
+          UP=$(grep -E '^DISTRIB_DESCRIPTION=' /tmp/openwrt_release 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
+          if [ -z "$UP" ]; then UP=$(grep -E '^DISTRIB_REVISION=' /tmp/openwrt_release 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1); fi
+          if [ -z "$UP" ]; then UP=$(grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' /tmp/openwrt_release 2>/dev/null | head -1); fi
           if [ -z "$UP" ]; then
-            echo "!! cannot read upstream version from imagebuilder .config"
+            echo "!! cannot read upstream version from /etc/openwrt_release"
             exit 1
           fi
           UP=$(echo "$UP" | xargs)
