@@ -105,17 +105,18 @@ jobs:
 
       - name: Get latest tag And Increment Version
         run: |
-          if [ $VERSION != "" ]; then
+          if [ -n "$VERSION" ]; then
             NEW_VERSION=$VERSION
           else
-            if [ $VERSION_SOURCE == "GitHub" ]; then
+            if [ "$VERSION_SOURCE" == "GitHub" ]; then
               echo "从Github仓库中获取版本号"
               version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^AutoBuild-iStoreOS-//')
             else
               echo "从Docker Hub中获取版本号"
               version=$docker_tag
             fi
-            if [[ "$version" == "null" ]]; then
+            # 仓库尚无 tag 或解析失败时，从头开始
+            if [ -z "$version" ] || [ "$version" == "null" ]; then
               NEW_VERSION='v1.0.0'
             else
               IFS='.' read -r major minor patch <<< "$version"
@@ -142,22 +143,20 @@ jobs:
       # 确定当前存在的 imagebuilder 文件名（koolcenter 每天重编，文件名固定带版本）
       - name: Resolve latest iStoreOS imagebuilder
         run: |
-          # 从目录索引解析 armv8 的 imagebuilder 文件名
-          CHECK_URL="${IB_SERVER}/${{ matrix.ib_dir }}/"
-          for u in ${CHECK_URL} ${CHECK_URL/http/https}; do
-            if curl -fsS -o /tmp/ib_list.html "$u" 2>/dev/null; then break; fi
-          done
-          grep -oE 'istoreos-imagebuilder-[^"]+\.tar\.zst' /tmp/ib_list.html | sort -u | tail -1 > /tmp/ib_name.txt
+          # 目录索引在 fw.koolcenter.com（fw0 仅用于文件下载）
+          LIST_SERVER="https://fw.koolcenter.com/iStoreOS/ib"
+          CHECK_URL="${LIST_SERVER}/${{ matrix.ib_dir }}/"
+          curl -fsSL -o /tmp/ib_list.html "$CHECK_URL" || { echo "!! cannot fetch dir listing"; exit 1; }
+          grep -oE 'istoreos-imagebuilder-[^" ]+\.tar\.zst' /tmp/ib_list.html | sort -u | tail -1 > /tmp/ib_name.txt
           IB_NAME=$(cat /tmp/ib_name.txt)
           if [ -z "$IB_NAME" ]; then echo "!! cannot resolve imagebuilder name"; exit 1; fi
           echo "IB_NAME=$IB_NAME" >> $GITHUB_ENV
-          echo "detected imagebuilder: $IB_NAME"
+          echo "detected imagebuilder: $IB_NAME -> ${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
 
       - name: Download and Extract iStoreOS imagebuilder
         run: |
           mkdir -p ib
           cd ib
-          wget -q -O ib.tar.zst https://raw.githubusercontent.com/redirect/${{ matrix.ib_dir }}/0 2>/dev/null || true
           wget -q -O ib.tar.zst "${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
           tar --zstd -xf ib.tar.zst
           rm -f ib.tar.zst
