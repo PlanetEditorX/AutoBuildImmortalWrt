@@ -73,7 +73,8 @@ jobs:
             artifact: subconverter_aarch64
             os: ubuntu-24.04-arm
             type: armsr_armv8
-            RootFS: armsr/armv8/immortalwrt-24.10.2-armsr-armv8-rootfs.tar.gz
+            ArchTarget: armsr/armv8
+            Family: armsr-armv8
             Build_Folder: ./src/aarch64
             Openclash: armsr_armv8/OpenClash-aarch64.tar.gz
             platform: arm
@@ -82,7 +83,8 @@ jobs:
             artifact: subconverter_x86_64
             os: ubuntu-latest
             type: x86-64
-            RootFS: x86/64/immortalwrt-24.10.2-x86-64-rootfs.tar.gz
+            ArchTarget: x86/64
+            Family: x86-64
             Build_Folder: ./src/amd64
             Openclash: x86-64/OpenClash-x86_64.tar.gz
             platform: amd
@@ -173,6 +175,13 @@ jobs:
           echo "NEW_VERSION: ${NEW_VERSION}"
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
+      - name: Get latest ImmortalWrt release version
+        run: |
+          # 从官方 releases 目录解析最新稳定版号（如 24.10.6）
+          REL=$(curl -s https://downloads.immortalwrt.org/releases/ | grep -oE '24\.10\.[0-9]+/' | grep -oE '[0-9.]+' | sort -V | tail -n1)
+          echo "Latest ImmortalWrt release: ${REL}"
+          echo "RELEASE_VERSION=${REL}" >> $GITHUB_ENV
+
       - name: Install Software
         run: |
           sudo apt-get update
@@ -261,8 +270,8 @@ jobs:
         run: |
           mkdir -p immortalwrt
           cd immortalwrt
-          echo "Downloading ${{ matrix.arch }} rootfs"
-          wget -O rootfs.tar.gz https://downloads.immortalwrt.org/releases/24.10.2/targets/${{ matrix.RootFS }}
+          echo "Downloading ${{ matrix.arch }} rootfs (v${RELEASE_VERSION})"
+          wget -O rootfs.tar.gz https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/targets/${{ matrix.ArchTarget }}/immortalwrt-${RELEASE_VERSION}-${{ matrix.Family }}-rootfs.tar.gz
           gzip -d rootfs.tar.gz
 
       - name: Move rootfs.tar.gz to build context
@@ -317,7 +326,7 @@ jobs:
         run: |
           ARCH="${{ matrix.arch }}"
           echo "Installing keepalived and keepalived-sync for $ARCH"
-          docker exec immortalwrt-${ARCH} sh -c '
+          docker exec --env RELEASE_VERSION=$RELEASE_VERSION immortalwrt-${ARCH} sh -c '
             opkg update
             PKGS="keepalived keepalived-sync"
             for PKG in $PKGS; do
@@ -325,10 +334,10 @@ jobs:
                 echo "Fallback: downloading $PKG manually"
                 case "$ARCH" in
                   aarch64)
-                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/aarch64_generic/packages/${PKG}_2.3.1-r1_aarch64_generic.ipk"
+                    URL="https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/packages/aarch64_generic/packages/${PKG}_2.3.1-r1_aarch64_generic.ipk"
                     ;;
                   amd64|x86_64)
-                    URL="https://downloads.immortalwrt.org/releases/24.10.2/packages/x86_64/packages/${PKG}_2.3.1-r1_x86_64.ipk"
+                    URL="https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/packages/x86_64/packages/${PKG}_2.3.1-r1_x86_64.ipk"
                     ;;
                   *)
                     echo "Unsupported arch: $ARCH"
@@ -414,8 +423,8 @@ jobs:
           # Commit container to image
           docker commit immortalwrt-${{ matrix.arch }} immortalwrt:${{ matrix.arch }}
           REPO_NAME=${{ secrets.DOCKER_USERNAME }}/immortalwrt-${{ matrix.platform }}
-          # Tag with version (removing 'v' prefix)
-          TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')
+          # Tag with version (removing 'v' prefix) + firmware version suffix, e.g. 0.1.7-24.10.6
+          TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')-${RELEASE_VERSION}
           docker tag immortalwrt:${{ matrix.arch }} $REPO_NAME:${TAGS_VERSION}
           # Push to Docker Hub
           docker push $REPO_NAME:${TAGS_VERSION} || { echo "Failed to push $REPO_NAME:${TAGS_VERSION}"; exit 1; }
