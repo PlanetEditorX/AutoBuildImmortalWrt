@@ -1,4 +1,4 @@
-name: build-immortalwrt-24.10-matrix
+name: build-immortalwrt-25.12-matrix
 on:
   # push:
   #   branches:
@@ -177,8 +177,8 @@ jobs:
 
       - name: Get latest ImmortalWrt release version
         run: |
-          # 从官方 releases 目录解析最新稳定版号（如 24.10.6）
-          REL=$(curl -s https://downloads.immortalwrt.org/releases/ | grep -oE '24\.10\.[0-9]+/' | grep -oE '[0-9.]+' | sort -V | tail -n1)
+          # 从官方 releases 目录解析最新稳定版号（如 25.12.2）
+          REL=$(curl -s https://downloads.immortalwrt.org/releases/ | grep -oE '[0-9]+\.[0-9]+\.[0-9]+/' | grep -oE '[0-9.]+' | sort -V | tail -n1)
           echo "Latest ImmortalWrt release: ${REL}"
           echo "RELEASE_VERSION=${REL}" >> $GITHUB_ENV
 
@@ -189,7 +189,7 @@ jobs:
           sudo apt-get install -y jq
 
       - name: Set executable permissions
-        run: chmod +x ${{ github.workspace }}/src/24.10/build.sh
+        run: chmod +x ${{ github.workspace }}/src/25.12/build.sh
 
       - name: Replace custom_ip value
         if: ${{ env.IPADDR != '' }}
@@ -213,10 +213,10 @@ jobs:
               -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
               -v "${{ github.workspace }}/src/files:/home/build/immortalwrt/files" \
               -v "${{ github.workspace }}/src/config/${{ matrix.type }}/.config:/home/build/immortalwrt/.config" \
-              -v "${{ github.workspace }}/src/24.10/build.sh:/home/build/immortalwrt/build.sh" \
+              -v "${{ github.workspace }}/src/25.12/build.sh:/home/build/immortalwrt/build.sh" \
               -e PROFILE=$profile \
               -e INCLUDE_DOCKER=$include_docker \
-              immortalwrt/imagebuilder:${{ matrix.type }}-openwrt-24.10 \
+              immortalwrt/imagebuilder:${{ matrix.type }}-openwrt-25.12 \
               /bin/bash /home/build/immortalwrt/build.sh
           done
 
@@ -312,6 +312,9 @@ jobs:
             mkdir -p /etc/openclash
             wget -O /tmp/OpenClash.tar.gz https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/${{ matrix.OpenClash }}
             tar -zxvf /tmp/OpenClash.tar.gz -C /etc/openclash
+            # 去除集成的 Clash 内核:精简体积;用户可在 OpenClash Web 界面的"插件更新-内核"里手动下载
+            rm -rf /etc/openclash/core
+            echo "OpenClash 内核未预置,请手动下载"
           "
 
       - name: Install Software in immortalwrt-${{ matrix.arch }}
@@ -319,34 +322,36 @@ jobs:
           echo "Installing software for ${{ matrix.arch }}"
           docker exec immortalwrt-${{ matrix.arch }} sh -c "
             mkdir -p /tmp/log /var/lock
-            opkg update
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
+            apk update
+            apk add curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn luci-app-argon-config luci-i18n-argon-config-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn luci-app-openclash openssh-sftp-server fdisk script-utils luci-i18n-samba4-zh-cn lrzsz nano
           "
       - name: Install keepalived in immortalwrt-${{ matrix.arch }}
+        continue-on-error: true
         run: |
           ARCH="${{ matrix.arch }}"
           echo "Installing keepalived and keepalived-sync for $ARCH"
           docker exec --env RELEASE_VERSION=$RELEASE_VERSION immortalwrt-${ARCH} sh -c '
-            opkg update
+            apk update
             PKGS="keepalived keepalived-sync"
             for PKG in $PKGS; do
-              if ! opkg install $PKG; then
-                echo "Fallback: downloading $PKG manually"
+              if ! apk add $PKG; then
+                echo "apk add failed, trying manual download"
                 case "$ARCH" in
                   aarch64)
-                    URL="https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/packages/aarch64_generic/packages/${PKG}_2.3.1-r1_aarch64_generic.ipk"
+                    PARCH="aarch64_generic"
                     ;;
                   amd64|x86_64)
-                    URL="https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/packages/x86_64/packages/${PKG}_2.3.1-r1_x86_64.ipk"
+                    PARCH="x86_64"
                     ;;
                   *)
                     echo "Unsupported arch: $ARCH"
-                    exit 1
+                    continue
                     ;;
                 esac
-                wget -O /tmp/${PKG}.ipk "$URL"
-                opkg install /tmp/${PKG}.ipk
-                rm -f /tmp/${PKG}.ipk
+                URLDIR="https://downloads.immortalwrt.org/releases/${RELEASE_VERSION}/packages/${PARCH}/packages"
+                wget -q -O /tmp/${PKG}.apk "${URLDIR}/${PKG}_*.apk" || continue
+                apk add --allow-untrusted /tmp/${PKG}.apk || echo "apk install ${PKG} failed"
+                rm -f /tmp/${PKG}.apk
               fi
             done
           '
@@ -355,7 +360,7 @@ jobs:
         continue-on-error: true
         run: |
           docker exec immortalwrt-${{ matrix.arch }} sh -c "
-            opkg remove samba4* with --force-removal-of-dependent-packages
+            apk del samba4 'samba4-*' 2>/dev/null || true
           "
 
       - name: Install OpenWrt-nikki in immortalwrt-${{ matrix.arch }}
@@ -364,9 +369,9 @@ jobs:
         run: |
           docker exec immortalwrt-${{ matrix.arch }} sh -c "
             curl -s -L https://github.com/nikkinikki-org/OpenWrt-nikki/raw/refs/heads/main/feed.sh | ash
-            opkg install nikki
-            opkg install luci-app-nikki
-            opkg install luci-i18n-nikki-zh-cn
+            apk add nikki
+            apk add luci-app-nikki
+            apk add luci-i18n-nikki-zh-cn
             # 写入云端配置
             wget -O /etc/config/nikki https://raw.githubusercontent.com/PlanetEditorX/AutoBuildImmortalWrt/refs/heads/main/src/config/nikki
           "
@@ -423,7 +428,7 @@ jobs:
           # Commit container to image
           docker commit immortalwrt-${{ matrix.arch }} immortalwrt:${{ matrix.arch }}
           REPO_NAME=${{ secrets.DOCKER_USERNAME }}/immortalwrt-${{ matrix.platform }}
-          # Tag with version (removing 'v' prefix) + firmware version suffix, e.g. 0.1.7-24.10.6
+          # Tag with version (removing 'v' prefix) + firmware version suffix, e.g. 0.1.7-25.12.2
           TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')-${RELEASE_VERSION}
           docker tag immortalwrt:${{ matrix.arch }} $REPO_NAME:${TAGS_VERSION}
           # Push to Docker Hub
