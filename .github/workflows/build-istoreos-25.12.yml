@@ -203,6 +203,7 @@ jobs:
       - name: Locate rootfs / images
         run: |
           IB_ROOT="$IB_ROOT"
+          mkdir -p ${{ matrix.Build_Folder }}
           echo "=== bin/targets ==="
           find "$IB_ROOT/bin" -type f \( -name '*.rootfs*' -o -name '*squashfs-combined*' -o -name '*.tar.gz' \) 2>/dev/null
           echo "=== 定位 rootfs.tar.gz ==="
