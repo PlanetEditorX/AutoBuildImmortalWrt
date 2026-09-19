@@ -1,0 +1,357 @@
+name: build-istoreos-24.10-matrix
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # 每周一 10:00 UTC（北京 18:00）
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: '请输入要编译固件大小 单位(MB)'
+        required: true
+        default: '256'
+      ipaddr:
+        description: '输入管理IP(空为DHCP获取)'
+        required: false
+        default: '192.168.1.3'
+      gateway:
+        description: '输入默认网关'
+        required: false
+        default: '192.168.1.2'
+      include_docker:
+        description: '是否编译 Docker 插件'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      compile_image:
+        description: '是否编译磁盘镜像'
+        required: true
+        default: 'no'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+      version_source:
+        description: '获取最新版本号方式'
+        required: true
+        default: 'Docker Hub'
+        type: choice
+        options:
+          - 'Docker Hub'
+          - 'GitHub'
+      version:
+        description: '输入版本号,格式为X.Y.Z,为空则版本号加1'
+        required: false
+        default: ''
+
+jobs:
+  linux_build:
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            artifact: istoreos_aarch64
+            os: ubuntu-24.04-arm
+            type: armsr_armv8
+            ib_dir: armsr
+            package_keyword: 'armsr-armv8-generic'
+            Build_Folder: ./src/istoreos/aarch64
+            platform: arm
+
+          - arch: amd64
+            artifact: istoreos_x86_64
+            os: ubuntu-latest
+            type: x86-64
+            ib_dir: x86_64
+            package_keyword: 'x86-64-generic'
+            Build_Folder: ./src/istoreos/amd64
+            platform: amd
+
+    runs-on: ${{ matrix.os }}
+    name: iStoreOS ${{ matrix.arch }} Build
+    env:
+      PROFILE: ${{ github.event.inputs.profile || '256' }}
+      IPADDR: ${{ github.event.inputs.ipaddr || '192.168.1.3' }}
+      GATEWAY: ${{ github.event.inputs.gateway || '192.168.1.2' }}
+      INCLUDE_DOCKER: ${{ github.event.inputs.include_docker || 'no' }}
+      VERSION: ${{ github.event.inputs.version || '' }}
+      VERSION_SOURCE: ${{ github.event.inputs.version_source || 'Docker Hub' }}
+      COMPILE_IMAGE: ${{ github.event.inputs.compile_image || 'yes' }}
+      IB_SERVER: https://fw0.koolcenter.com/iStoreOS/ib
+      IB_FILE: ''
+      MANIFEST_URL: ''
+    outputs:
+      VERSION_FOR_UPLOAD: ${{ steps.set_version_step_output.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Get latest Docker tag
+        if: ${{ env.VERSION_SOURCE == 'Docker Hub' }}
+        run: |
+          TAGS_URL="https://registry.hub.docker.com/v2/namespaces/${{ secrets.DOCKER_USERNAME }}/repositories/istoreos-${{ matrix.platform }}/tags?page=2&page_size=1"
+          TAGS_RESPONSE=$(curl -s $TAGS_URL)
+          docker_tag=$(echo $TAGS_RESPONSE | jq -r '.results[] | .name' | sort -V | tail -n1 | awk -F'-' '{print $1}')
+          echo "docker_tag=$docker_tag" >> $GITHUB_ENV
+
+      - name: Get latest tag And Increment Version
+        run: |
+          if [ $VERSION != "" ]; then
+            NEW_VERSION=$VERSION
+          else
+            if [ $VERSION_SOURCE == "GitHub" ]; then
+              echo "从Github仓库中获取版本号"
+              version=$(curl -s https://api.github.com/repos/${{ github.repository }}/tags | jq -r '.[0].name' | sed 's/^AutoBuild-iStoreOS-//')
+            else
+              echo "从Docker Hub中获取版本号"
+              version=$docker_tag
+            fi
+            if [[ "$version" == "null" ]]; then
+              NEW_VERSION='v1.0.0'
+            else
+              IFS='.' read -r major minor patch <<< "$version"
+              major=$(echo "$major" | sed 's/^v//')
+              echo "Major: $major, Minor: $minor, Patch: $patch"
+              patch=$((patch + 1))
+              if [ $patch -eq 10 ]; then
+                patch=0; minor=$((minor + 1))
+                if [ $minor -eq 10 ]; then
+                  minor=0; major=$((major + 1))
+                fi
+              fi
+              NEW_VERSION="v$major.$minor.$patch"
+            fi
+          fi
+          echo "NEW_VERSION: ${NEW_VERSION}"
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Install Software
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd qemu-utils jq tree
+
+      # 确定当前存在的 imagebuilder 文件名（koolcenter 每天重编，文件名固定带版本）
+      - name: Resolve latest iStoreOS imagebuilder
+        run: |
+          # 从目录索引解析 armv8 的 imagebuilder 文件名
+          CHECK_URL="${IB_SERVER}/${{ matrix.ib_dir }}/"
+          for u in ${CHECK_URL} ${CHECK_URL/http/https}; do
+            if curl -fsS -o /tmp/ib_list.html "$u" 2>/dev/null; then break; fi
+          done
+          grep -oE 'istoreos-imagebuilder-[^"]+\.tar\.zst' /tmp/ib_list.html | sort -u | tail -1 > /tmp/ib_name.txt
+          IB_NAME=$(cat /tmp/ib_name.txt)
+          if [ -z "$IB_NAME" ]; then echo "!! cannot resolve imagebuilder name"; exit 1; fi
+          echo "IB_NAME=$IB_NAME" >> $GITHUB_ENV
+          echo "detected imagebuilder: $IB_NAME"
+
+      - name: Download and Extract iStoreOS imagebuilder
+        run: |
+          mkdir -p ib
+          cd ib
+          wget -q -O ib.tar.zst https://raw.githubusercontent.com/redirect/${{ matrix.ib_dir }}/0 2>/dev/null || true
+          wget -q -O ib.tar.zst "${IB_SERVER}/${{ matrix.ib_dir }}/${IB_NAME}"
+          tar --zstd -xf ib.tar.zst
+          rm -f ib.tar.zst
+          echo "--- imagebuilder dir ---"
+          ls -la
+
+      - name: Prepare custom files (uci-defaults)
+        run: |
+          # 注入自定义初始化脚本到固件/files，供首次启动配置静态IP等
+          mkdir -p files/etc/uci-defaults
+          cp ${{ github.workspace }}/src/istoreos/files/etc/uci-defaults/99-custom.sh \
+             files/etc/uci-defaults/99-custom.sh
+
+      - name: Build iStoreOS rootfs + images
+        run: |
+          # 利用 imagebuilder 生成固件/rootfs
+          IB_ROOT=$(ls -d /home/runner/work/*/*/ib/istoreos-* | head -1)
+          echo "IB_ROOT=$IB_ROOT" >> $GITHUB_ENV
+          cd "$IB_ROOT"
+          make image \
+            ENABLE_CPUPERF=n \
+            FILES="${{ github.workspace }}/files" \
+            ROOTFS_PARTSIZE=$PROFILE 2>&1 | tail -30
+
+      - name: Locate rootfs / images
+        run: |
+          IB_ROOT="$IB_ROOT"
+          echo "=== bin/targets ==="
+          find "$IB_ROOT/bin" -type f \( -name '*.rootfs*' -o -name '*squashfs-combined*' -o -name '*.tar.gz' \) 2>/dev/null
+          echo "=== 定位 rootfs.tar.gz ==="
+          ROOTFS_PATH=$(find "$IB_ROOT/bin" -type f -name '*rootfs*.tar.gz' 2>/dev/null | head -1)
+          if [ -z "$ROOTFS_PATH" ]; then
+            # 回退：imagebuilder 无现成 rootfs 时，从 combined 镜像解包太重；此处直接报错提示用 make 定向生成
+            echo "!! no rootfs.tar.gz found; imagebuilder may not emit one directly"
+          else
+            cp "$ROOTFS_PATH" ${{ matrix.Build_Folder }}/rootfs.tar.gz
+          fi
+          ls -la ${{ matrix.Build_Folder }}/ 2>/dev/null || true
+
+      - name: Build ${{ matrix.arch }} Docker image
+        run: |
+          mkdir -p ${{ matrix.Build_Folder }}
+          # 若上步已复制 rootfs 则跳过下载
+          if [ ! -f ${{ matrix.Build_Folder }}/rootfs.tar.gz ]; then
+            echo "!! 无法获得rootfs，停止Docker构建"
+            exit 1
+          fi
+          cp ${{ github.workspace }}/src/istoreos/Dockerfile ${{ matrix.Build_Folder }}/Dockerfile
+          docker build -t istoreos:initial-${{ matrix.arch }} ${{ matrix.Build_Folder }}
+
+      - name: Ensure Docker image exists
+        run: |
+          if ! docker image inspect istoreos:initial-${{ matrix.arch }} &> /dev/null; then
+            echo "Image not found, rebuilding..."
+            docker build -t istoreos:initial-${{ matrix.arch }} --platform linux/${{ matrix.arch }} ${{ matrix.Build_Folder }}
+          fi
+
+      - name: Run container in istoreos-${{ matrix.arch }}
+        run: |
+          docker run -d \
+            --name istoreos-${{ matrix.arch }} \
+            --platform linux/${{ matrix.arch }} \
+            --privileged \
+            istoreos:initial-${{ matrix.arch }} \
+            /bin/sh -c "while true; do sleep 1000; done"
+
+      - name: Install Software in istoreos-${{ matrix.arch }}
+        run: |
+          docker exec istoreos-${{ matrix.arch }} sh -c "
+            mkdir -p /tmp/log /var/lock
+            opkg update
+            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn \
+              luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn \
+              openssh-sftp-server fdisk script-utils lrzsz nano \
+              luci-i18n-samba4-zh-cn || echo 'opkg部分安装失败，继续'
+          "
+
+      - name: Use Custom /etc/config in istoreos-${{ matrix.arch }}
+        continue-on-error: true
+        run: |
+          docker exec istoreos-${{ matrix.arch }} sh -c "
+            # 设置LAN静态IP（对应eth0）
+            cat <<EOF > /etc/config/network
+          config interface 'loopback'
+                  option device 'lo'
+                  option proto 'static'
+                  option ipaddr '127.0.0.1'
+                  option netmask '255.0.0.0'
+
+          config globals 'globals'
+                  option ula_prefix 'fd90:2e3a:1b2f::/48'
+                  option packet_steering '1'
+
+          config interface 'lan'
+                  option device 'eth0'
+                  option proto 'static'
+                  option ipaddr '\${IPADDR}'
+                  option netmask '255.255.255.0'
+                  option gateway '\${GATEWAY}'
+                  option delegate '0'
+                  option dns '223.5.5.5 1.1.1.1'
+          EOF
+          "
+          docker restart istoreos-${{ matrix.arch }}
+          sleep 10s
+
+      - name: Commit modified container in istoreos-${{ matrix.arch }}
+        run: |
+          docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
+
+      - name: Containers To Image And Push Docker Image
+        run: |
+          docker commit istoreos-${{ matrix.arch }} istoreos:${{ matrix.arch }}
+          REPO_NAME=${{ secrets.DOCKER_USERNAME }}/istoreos-${{ matrix.platform }}
+          TAGS_VERSION=$(echo "${{ env.VERSION }}" | sed 's/^v//')
+          docker tag istoreos:${{ matrix.arch }} $REPO_NAME:${TAGS_VERSION}
+          docker push $REPO_NAME:${TAGS_VERSION} || { echo "Failed to push $REPO_NAME:${TAGS_VERSION}"; exit 1; }
+          docker tag istoreos:${{ matrix.arch }} $REPO_NAME:latest
+          docker push $REPO_NAME:latest || { echo "Failed to push latest"; exit 1; }
+          docker images
+          docker ps -a
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f istoreos-${{ matrix.arch }} || true
+          docker rmi istoreos:${{ matrix.arch }} || true
+
+      - name: GET IMG for ${{ matrix.type }}
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        continue-on-error: true
+        run: |
+          IB_ROOT="$IB_ROOT"
+          IMG=$(find "$IB_ROOT/bin" -type f -name '*squashfs-combined-efi.qcow2*' -o -name '*squashfs-combined-efi.img.gz' 2>/dev/null | head -5)
+          for f in $IMG; do
+            cp "$f" ${{ github.workspace }}/
+          done
+          ls -la ${{ github.workspace }}/*qcow2* ${{ github.workspace }}/*img.gz 2>/dev/null || echo "no image artifact"
+
+      - name: Generate info.md
+        if: matrix.arch == 'aarch64'
+        run: |
+          echo "#### iStoreOS 固件地址: \`$IPADDR\`" > info.md
+          echo "#### 网关地址: \`$GATEWAY\`" >> info.md
+          echo "#### 用户名: \`root\`" >> info.md
+          echo "#### Docker: $INCLUDE_DOCKER" >> info.md
+          echo "#### 磁盘镜像: $COMPILE_IMAGE" >> info.md
+          cat info.md
+
+      - name: Set ENV VERSION for upload
+        id: set_version_step_output
+        run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_OUTPUT
+
+      - name: Upload info.md
+        if: matrix.arch == 'aarch64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: ${{ github.workspace }}/info.md
+
+      - name: 上传镜像
+        uses: actions/upload-artifact@v4
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        with:
+          if-no-files-found: ignore
+          name: iStoreOS-Release
+          path: ${{ github.workspace }}/*combined*.gz
+
+  upload:
+    runs-on: ubuntu-latest
+    needs: linux_build
+    steps:
+      - name: Download info.md
+        uses: actions/download-artifact@v4
+        with:
+          name: build-info
+          path: ./build-info
+
+      - name: Verify VERSION
+        run: |
+          echo "VERSION: ${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}"
+
+      - uses: actions/download-artifact@v4
+        if: ${{ env.COMPILE_IMAGE == 'yes' }}
+        with:
+          name: iStoreOS-Release
+          path: ./iStoreOS-Release
+
+      - name: Upload as release assets
+        uses: softprops/action-gh-release@v2.2.1
+        with:
+          tag_name: AutoBuild-iStoreOS-${{ needs.linux_build.outputs.VERSION_FOR_UPLOAD }}
+          body_path: build-info/info.md
+          files: iStoreOS-Release/*.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

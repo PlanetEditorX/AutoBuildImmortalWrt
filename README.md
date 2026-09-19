@@ -153,3 +153,94 @@ https://github.com/wukongdaily/DockerTarBuilder
 ---
 ## ❤️如何构建docker版ImmortalWrt
 https://wkdaily.cpolar.top/15
+
+---
+
+# iStoreOS（Docker 版）
+
+> 基于官方 iStoreOS **imagebuilder** 构建，自动跟踪 koolcenter 最新版本（armsr-armv8 / x86-64 双架构），产物推送到 Docker Hub，并可按需上传固件镜像到 GitHub Release。
+
+## 文件结构
+
+```
+.github/workflows/build-istoreos-24.10.yml   ← iStoreOS 构建 workflow
+src/istoreos/Dockerfile                       ← from scratch + rootfs
+src/istoreos/files/etc/uci-defaults/99-custom.sh  ← 首次启动配置静态IP
+```
+
+## 前置条件（GitHub 仓库 Secrets）
+
+在 `Settings → Secrets and variables → Actions` 配置：
+
+| Secret | 说明 |
+|--------|------|
+| `DOCKER_USERNAME` | Docker Hub 用户名（推镜像用） |
+| `DOCKER_PASSWORD` | Docker Hub Token/密码 |
+
+`GITHUB_TOKEN` 自动提供。配置后到 `Actions` 标签页 **Run workflow** 即可；也可每周一 18:00（北京）自动触发。
+
+> 注意：本 workflow 与 `build-immortalwrt-24.10-matrix.yml` 可并存，二者独立构建、互不影响。
+
+## 目标产物
+
+- **arm**（aarch64）：`DOCKER_USERNAME/istoreos-arm:latest` + 版本号
+- **amd**（x86_64）：`DOCKER_USERNAME/istoreos-amd:latest` + 版本号
+
+workflow 编译时默认把 `lan` 配成**单网卡静态 IP**（可在 Run workflow 输入 `IPADDR`/`GATEWAY`），容器起来即可用。
+
+---
+
+## 一、部署（macvlan 网络）
+
+### 1. 创建 macvlan 网络
+```bash
+docker network create -d macvlan \
+  --subnet=192.168.1.0/24 \
+  --gateway=192.168.1.2 \
+  -o parent=eth0 \
+  istoreos_net
+```
+- `--gateway`：改成你的路由器真实地址
+- `-o parent`：宿主机网卡名，通常是 `eth0`
+
+### 2. 拉取镜像
+```bash
+# arm（aarch64，如本盒 B3 Pro）
+docker pull DOCKER_USERNAME/istoreos-arm:latest
+# amd（x86_64）
+docker pull DOCKER_USERNAME/istoreos-amd:latest
+```
+
+### 3. 创建容器
+```bash
+docker run -d --name istoreos \
+  --network istoreos_net --ip 192.168.1.203 \
+  --privileged --restart unless-stopped \
+  DOCKER_USERNAME/istoreos-arm:latest /sbin/init
+```
+- `--ip`：指定容器在 macvlan 网络的静态地址（需与网络同网段、避开路由 DHCP）
+- `--privileged`：OpenWRT/iStoreOS 管理网络必须
+
+### 4. 验证
+```bash
+# 局域网设备访问管理面
+curl -I http://192.168.1.203
+# 或浏览器打开 http://192.168.1.203  （默认 root，无密码/视镜像）
+```
+
+### 5.（可选）宿主与容器通信
+macvlan 的宿主默认无法直连容器，若需在盒子上直接访问：
+```bash
+ip link add macvlan-shim link eth0 type macvlan mode bridge
+ip addr add 192.168.1.11/24 dev macvlan-shim
+ip link set macvlan-shim up
+```
+
+---
+
+## 二、模块化管理
+- 登录 LuCI 后，在 **iStore 软件中心** 一键安装路由器插件（OpenClash、PassWall、AdGuard、内网穿透等），比逐个 opkg 更便捷。
+- 容器数据默认在内存，如需持久化配置，可挂载 overlay 卷：
+  ```bash
+  # 重建时加 -v /data/docker/istoreos:/overlay
+  ```
