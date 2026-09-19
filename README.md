@@ -163,7 +163,7 @@ https://wkdaily.cpolar.top/15
 ## 文件结构
 
 ```
-.github/workflows/build-istoreos-24.10.yml   ← iStoreOS 构建 workflow
+.github/workflows/build-istoreos-25.12.yml   ← iStoreOS 构建 workflow
 src/istoreos/Dockerfile                       ← from scratch + rootfs
 src/istoreos/files/etc/uci-defaults/99-custom.sh  ← 首次启动配置静态IP
 ```
@@ -180,6 +180,8 @@ src/istoreos/files/etc/uci-defaults/99-custom.sh  ← 首次启动配置静态IP
 `GITHUB_TOKEN` 自动提供。配置后到 `Actions` 标签页 **Run workflow** 即可；也可每周一 18:00（北京）自动触发。
 
 > 注意：本 workflow 与 `build-immortalwrt-24.10-matrix.yml` 可并存，二者独立构建、互不影响。
+
+> 版本说明：iStoreOS 该 imagebuilder 为 **25.12 系列**（kernel 6.12, apk 包管理器），故文件命名 `25.12`。
 
 ## 目标产物
 

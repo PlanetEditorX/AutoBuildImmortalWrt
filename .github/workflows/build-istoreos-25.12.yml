@@ -1,4 +1,4 @@
-name: build-istoreos-24.10-matrix
+name: build-istoreos-25.12-matrix
 
 on:
   schedule:
@@ -228,11 +228,11 @@ jobs:
         run: |
           docker exec istoreos-${{ matrix.arch }} sh -c "
             mkdir -p /tmp/log /var/lock
-            opkg update
-            opkg install curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn \
+            apk update
+            apk add curl luci-i18n-diskman-zh-cn luci-i18n-firewall-zh-cn \
               luci-i18n-package-manager-zh-cn luci-i18n-ttyd-zh-cn \
               openssh-sftp-server fdisk script-utils lrzsz nano \
-              luci-i18n-samba4-zh-cn || echo 'opkg部分安装失败，继续'
+              luci-i18n-samba4-zh-cn || echo 'apk部分安装失败，继续'
           "
 
       - name: Use Custom /etc/config in istoreos-${{ matrix.arch }}
