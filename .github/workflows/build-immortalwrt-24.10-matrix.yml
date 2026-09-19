@@ -262,7 +262,7 @@ jobs:
           mkdir -p immortalwrt
           cd immortalwrt
           echo "Downloading ${{ matrix.arch }} rootfs"
-          wget -O rootfs.tar.gz https://cmcc.mirrors.ustc.edu.cn/immortalwrt/releases/24.10.2/targets/${{ matrix.RootFS }}
+          wget -O rootfs.tar.gz https://downloads.immortalwrt.org/releases/24.10.2/targets/${{ matrix.RootFS }}
           gzip -d rootfs.tar.gz
 
       - name: Move rootfs.tar.gz to build context
